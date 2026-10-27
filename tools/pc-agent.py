@@ -10,6 +10,8 @@ Erfasst werden
   - Abstürze (systemd-coredump) und Out-of-Memory-Abbrüche
   - Dateien: neu, geändert, gelöscht, verschoben in den überwachten Ordnern
   - Warnungen bei zu hoher Temperatur, vollem RAM oder vollem Datenträger
+  - optional (--allow-control): Neustart, Herunterfahren, Ruhezustand aus der App
+    – nur diese festen Aktionen, keine beliebigen Befehle, nur mit Benutzer/Passwort
 
 Gebraucht wird nur Python 3, keine zusätzlichen Pakete. Daten liegen in einer
 SQLite-Datei (Standard: ~/.local/share/ndashboard-agent/agent.db).
@@ -525,6 +527,49 @@ def file_watcher(store, dirs, stop, status):
         stop.wait(0.5)
 
 
+# ---------------------------------------------------------------- Gerätesteuerung
+
+# Feste Liste – die App kann nur diese Aktionen auslösen, keine beliebigen Befehle.
+POWER_ACTIONS = {
+    "reboot": {"label": "Neustart", "command": ["systemctl", "--no-ask-password", "reboot"], "check": "CanReboot"},
+    "poweroff": {"label": "Herunterfahren", "command": ["systemctl", "--no-ask-password", "poweroff"], "check": "CanPowerOff"},
+    "suspend": {"label": "Ruhezustand", "command": ["systemctl", "--no-ask-password", "suspend"], "check": "CanSuspend"},
+}
+
+
+def can(check):
+    """Fragt systemd-logind, ob dieser Benutzer die Aktion ohne Passwortabfrage ausführen darf:
+    "yes", "challenge" (bräuchte ein Passwort – Polkit-Regel fehlt), "no", "na" oder "unknown"."""
+    if not shutil.which("busctl"):
+        return "unknown"
+    try:
+        out = subprocess.run(["busctl", "--system", "call", "org.freedesktop.login1", "/org/freedesktop/login1",
+                              "org.freedesktop.login1.Manager", check], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return "unknown"
+    return out.strip().split('"')[1] if '"' in out else "unknown"
+
+
+def control_status(enabled):
+    return {"enabled": enabled, "actions": {k: (can(v["check"]) if enabled else "off") for k, v in POWER_ACTIONS.items()}}
+
+
+def run_power_action(store, action):
+    info = POWER_ACTIONS[action]
+    store.event("system", "warn", info["label"] + " über die App ausgelöst", socket.gethostname())
+
+    def go():
+        if os.environ.get("NDA_DRY_RUN"):  # nur für Tests: nichts wirklich ausführen
+            store.event("system", "info", "Trockenlauf: " + " ".join(info["command"]))
+            return
+        try:
+            subprocess.run(info["command"], capture_output=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            store.event("system", "danger", info["label"] + " fehlgeschlagen", str(e))
+    # kurz warten, damit die Antwort an die App noch rausgeht, bevor das System herunterfährt
+    threading.Timer(1.5, go).start()
+
+
 # ---------------------------------------------------------------- HTTP-API
 
 def os_name():
@@ -537,11 +582,12 @@ def os_name():
 class Handler(BaseHTTPRequestHandler):
     server_version = "nDashboardAgent/" + VERSION
     store = hw = status = auth = None
+    control = False
 
     def cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "authorization")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
 
     def send_json(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -589,7 +635,8 @@ class Handler(BaseHTTPRequestHandler):
                     "uptime": float((read("/proc/uptime", "0") or "0").split()[0]),
                     "journal": self.status.get("journal"), "journal_full": self.status.get("journal_full"),
                     "files": self.status.get("files"), "watched": self.status.get("watched", []),
-                    "counts_24h": self.store.counts(now() - 86400)})
+                    "counts_24h": self.store.counts(now() - 86400),
+                    "control": control_status(self.control)})
             if url.path == "/api/sensors":
                 with self.hw.lock:
                     return self.send_json(200, self.hw.snapshot)
@@ -605,6 +652,32 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             return self.send_json(400, {"error": "Ungültige Parameter"})
         self.send_json(404, {"error": "Nicht gefunden"})
+
+    def do_POST(self):
+        url = urlparse(self.path)
+        if url.path != "/api/control":
+            return self.send_json(404, {"error": "Nicht gefunden"})
+        if not self.auth:  # Steuerung nie ohne Anmeldung
+            return self.send_json(403, {"error": "Steuerung nur mit --user/--pass möglich."})
+        if not self.authorized():
+            return
+        if not self.control:
+            return self.send_json(403, {"error": "Steuerung ist auf diesem Gerät nicht freigeschaltet (Agent mit --allow-control starten)."})
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(min(length, 4096)) or b"{}")
+        except ValueError:
+            return self.send_json(400, {"error": "Ungültige Anfrage"})
+        action = body.get("action")
+        if action not in POWER_ACTIONS:
+            return self.send_json(400, {"error": "Unbekannte Aktion"})
+        allowed = can(POWER_ACTIONS[action]["check"])
+        if allowed in ("challenge", "no"):
+            return self.send_json(403, {"error": "Das System erlaubt diesem Benutzer „%s“ nicht ohne Passwort. Polkit-Regel einrichten (siehe PC-AGENT.md)." % POWER_ACTIONS[action]["label"]})
+        if allowed == "na":
+            return self.send_json(409, {"error": "„%s“ wird auf diesem Gerät nicht unterstützt." % POWER_ACTIONS[action]["label"]})
+        run_power_action(self.store, action)
+        self.send_json(202, {"ok": True, "action": action})
 
     def log_message(self, fmt, *args):
         pass  # keine Zugriffsprotokolle im Terminal
@@ -641,6 +714,7 @@ def main():
     ap.add_argument("--watch", action="append", help="Ordner, deren Dateien protokolliert werden (mehrfach möglich)")
     ap.add_argument("--no-files", action="store_true", help="keine Dateien protokollieren")
     ap.add_argument("--db", default=os.path.expanduser("~/.local/share/ndashboard-agent/agent.db"))
+    ap.add_argument("--allow-control", action="store_true", help="Neustart/Herunterfahren/Ruhezustand aus der App erlauben (nur mit --user/--pass)")
     a = ap.parse_args()
 
     store, hw, stop = Store(a.db), Hardware(), threading.Event()
@@ -661,10 +735,14 @@ def main():
     signal.signal(signal.SIGTERM, on_term)
     Handler.store, Handler.hw, Handler.status = store, hw, status
     Handler.auth = (a.user + ":" + a.password) if a.user else None
+    Handler.control = bool(a.allow_control and a.user)
     print("nDashboard PC-Agent", VERSION)
     print("Adresse für die App:  http://%s:%d" % (local_ip(), a.port))
     print("Benutzer:", a.user or "(ohne Anmeldung – nicht empfohlen)")
     print("Überwachte Ordner:", ", ".join(dirs) or "(keine)")
+    if a.allow_control and not a.user:
+        print("Hinweis: --allow-control wird ohne --user/--pass ignoriert.")
+    print("Steuerung (Neustart/Herunterfahren):", "freigeschaltet" if Handler.control else "aus")
     if not status["journal_full"]:
         print("Hinweis: System-Journal nicht lesbar – An-/Abmeldungen fehlen. Siehe PC-AGENT.md (Gruppe systemd-journal).")
     print("Beenden mit Strg+C")

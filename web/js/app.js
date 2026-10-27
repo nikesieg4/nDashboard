@@ -13,11 +13,11 @@
   var PAGES = {
     login:        { title: 'Anmeldung', root: true },
     home:         { title: 'Start', nav: 'home', root: true },
-    control:      { title: 'Steuereinheit', nav: 'home' },
+    control:      { title: 'Steuereinheit', sub: 'PC & NAS', nav: 'more', root: true },
     files:        { title: 'Dateien', nav: 'files', root: true },
     file:         { title: 'Datei', nav: 'files' },
-    sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sec', root: true },
-    security:     { title: 'Sicherheit', nav: 'sec', root: true },
+    sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sensors', root: true },
+    security:     { title: 'Sicherheit', sub: 'Nicht verbunden', nav: 'more', root: true },
     management:   { title: 'Management', sub: 'Ziele & Sparpläne', nav: 'more', root: true },
     goal:         { title: 'Ziel', nav: 'more' },
     news:         { title: 'Bulletin', nav: 'more', root: true },
@@ -27,15 +27,15 @@
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
-    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'],
+    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit'],
     ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', '5']
   ];
   var BOTTOM = [
     { id: 'home', label: 'Start', icon: 'home' }, { id: 'files', label: 'Dateien', icon: 'folder' },
-    { id: 'sec', label: 'Sicherheit', icon: 'shield', badge: '2' }, { id: 'chat', label: 'Chat', icon: 'chat', badge: '5' },
+    { id: 'sensors', label: 'Sensoren', icon: 'sensor' }, { id: 'chat', label: 'Chat', icon: 'chat', badge: '5' },
     { id: 'more', label: 'Mehr', icon: 'menu' }
   ];
-  var BOTTOM_TARGET = { home: 'home', files: 'files', sec: 'security', chat: 'chat' };
+  var BOTTOM_TARGET = { home: 'home', files: 'files', sensors: 'sensors', chat: 'chat' };
 
   function currentRoute() {
     var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
@@ -74,13 +74,6 @@
       h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { props.onNavigate('login'); } }, 'Abmelden'));
   }
 
-  /** Platzhalter für Bereiche, die (noch) nicht angebunden sind. */
-  function Unavailable(props) {
-    return h(O.Panel, { key: props.k, variant: 'outlined', mutedCorners: true, title: props.title, icon: props.icon },
-      h(O.Status, { tone: 'neutral' }, 'Nicht verfügbar'),
-      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, props.text));
-  }
-
   /* ---------- Seiten ---------- */
   function Login() {
     return h('div', { className: 'login op-grid-bg' },
@@ -117,35 +110,10 @@
     ];
   }
 
-  function Control() {
-    return [
-      h(O.StatTile, { key: 't', icon: 'temp', label: 'Lokale Temperatur', value: '27', unit: '°C', level: .45, gaugeHeight: 48 }),
-      h('div', { key: 'g', className: 'g2' }, h(O.StatTile, { label: 'Integrität', value: '99.7%' }), h(O.StatTile, { label: 'Energie', value: 'Stabil' })),
-      h(O.Panel, { key: 'c', title: 'Reaktorkern', icon: 'chart' }, h(O.AreaChart, { data: [50, 52, 51, 55, 60, 59, 62, 64, 60, 52, 44, 36], min: 0, max: 80, fillFrom: .45, height: 130 })),
-      h('div', { key: 'n', className: 'op-col' },
-        h(O.NavButton, { icon: 'power' }, 'Energiesteuerung'),
-        h(O.NavButton, { icon: 'chart', active: true }, 'Systemstatus'),
-        h(O.NavButton, { icon: 'map' }, 'Standortsteuerung')),
-      h(O.Panel, { key: 'l', variant: 'outlined', mutedCorners: true, title: 'Ereignisprotokoll' },
-        h(O.EventLog, { items: [{ text: 'Verschlüsselungsalgorithmus entsperrt', time: '18:42:33' }, { text: 'Befehl -control- aufgerufen', time: '18:42:35' }] }))
-    ];
-  }
-
   function Security() {
-    return [
-      h(O.Panel, { key: 'p', variant: 'framed' },
-        h('div', { className: 'op-row', style: { justifyContent: 'space-between', flexWrap: 'nowrap' } },
-          h('div', null,
-            h('div', { className: 'op-label' }, 'Bedrohungsstufe'),
-            h('div', { style: { fontSize: 40, lineHeight: '44px', fontWeight: 600, letterSpacing: '.06em' } }, 'SICHER'),
-            h(O.Status, { tone: 'ok' }, 'Keine aktiven Vorfälle')),
-          h(O.RadarChart, { size: 110, values: [.3, .2, .6, .25, .35, .2] }))),
-      h('div', { key: 's', className: 'g2' }, h(O.StatTile, { label: 'Personal', value: '448' }), h(O.StatTile, { label: 'Sicherheitsindex', value: '78', unit: '%' })),
-      h(Unavailable, { key: 'c', title: 'Kameras', icon: 'camera', text: 'Die Kameraansicht ist in dieser Version nicht verfügbar.' }),
-      h(O.Panel, { key: 'l', variant: 'outlined', mutedCorners: true, title: 'Ereignisprotokoll' },
-        h(O.EventLog, { rail: true, items: [{ text: 'Alle Systeme betriebsbereit', time: '01:26' }, { text: 'Zugang an Tor 16 verweigert', time: '01:25', tone: 'warn' }] })),
-      h(O.Button, { key: 'b', variant: 'danger', icon: 'lock' }, 'Lockdown einleiten')
-    ];
+    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Sicherheit', icon: 'shield' },
+      h(O.Status, { tone: 'neutral' }, 'Nichts verbunden'),
+      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, 'Mit diesem Bereich ist noch kein Gerät verbunden.'));
   }
 
   function News() {
@@ -224,9 +192,16 @@
   }
 
   function AgentSettings() {
-    return h(ConnectionSettings, { title: 'PC-Agent (Sensoren)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006',
+    return h(ConnectionSettings, { title: 'PC-Agent (Sensoren, Steuerung)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006',
       hint: 'Wird von pc-agent.py beim Start angezeigt.', goto: ['#/sensors', 'Zu den Sensoren'],
       test: function () { return Agent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
+  }
+
+  function NasAgentSettings() {
+    var NasAgent = window.NDServices.NasAgent;
+    return h(ConnectionSettings, { title: 'NAS-Agent (Steuerung)', icon: 'power', service: NasAgent, placeholder: 'http://192.168.1.60:5006',
+      hint: 'pc-agent.py auf dem NAS (Raspberry Pi), siehe PC-AGENT.md. Nicht die Adresse von nas-server.py (Port 5005).', goto: ['#/control', 'Zur Steuereinheit'],
+      test: function () { return NasAgent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
   }
 
   /** Update-Stand abonnieren (siehe update.js). */
@@ -271,6 +246,7 @@
     return [
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
+      h(NasAgentSettings, { key: 'nasagent' }),
       h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
         h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
@@ -281,6 +257,7 @@
 
   function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
   function Sensors() { return h(window.NDMonitor.Sensors); }
+  function Control() { return h(window.NDControl.Control); }
   function Management() { return h(window.NDGoals.Overview); }
   function Goal(props) { return h(window.NDGoals.Detail, { id: props.id }); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
@@ -315,7 +292,7 @@
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
       title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : page === 'goal' ? window.NDGoals.title(routeId) : meta.title,
       subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : meta.sub,
-      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : page === 'conversation' ? IconBtn('more', 'Mehr') : page === 'control' ? IconBtn('close', 'Schließen', back) : IconBtn('alert', 'Meldungen')
+      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : page === 'conversation' ? IconBtn('more', 'Mehr') : IconBtn('alert', 'Meldungen')
     });
     var footer = page === 'conversation'
       ? h('div', { className: 'app-footer' }, h(O.CommandInput, { showPrompt: false, placeholder: 'Nachricht schreiben…', label: 'Nachricht', onSubmit: noop }))

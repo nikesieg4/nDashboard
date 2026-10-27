@@ -86,3 +86,8 @@ body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
   .amount-form { grid-template-columns: 1fr 96px; }
   .amount-form .op-btn { grid-column: 1 / -1; }
 }
+
+/* Steuereinheit */
+.control-grid { display: grid; gap: var(--space-4); }
+.control-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+@media (min-width: 900px) { .control-grid { grid-template-columns: 1fr 1fr; align-items: start; } }

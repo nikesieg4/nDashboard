@@ -10,6 +10,7 @@
 | System | Herunterfahren, Neustart, Ruhezustand, Start/Ende des Agenten |
 | Dateien | Neu, geändert, gelöscht, verschoben – in Schreibtisch, Dokumente, Downloads und Bilder (oder den Ordnern, die du angibst) |
 | Warnungen | Temperatur zu hoch, Arbeitsspeicher oder Datenträger fast voll |
+| Steuerung (optional) | Neustart, Herunterfahren, Ruhezustand aus der App – nur nach Freischaltung, siehe Abschnitt 6 |
 
 Gebraucht wird nur Python 3 (unter Fedora vorinstalliert). Die Daten liegen in `~/.local/share/ndashboard-agent/agent.db`.
 
@@ -78,6 +79,39 @@ Einstellungen → **PC-Agent (Sensoren)**: Adresse aus Schritt 2, Benutzer und P
 
 ---
 
+## 6. Steuerung: Neustart, Herunterfahren, Ruhezustand (optional)
+
+Auf der Seite **Steuereinheit** kannst du PC und NAS neu starten, herunterfahren oder in den Ruhezustand schicken. Aus Sicherheitsgründen gibt es **keine freie Kommandozeile** – nur diese drei festen Aktionen, jede mit Rückfrage in der App und nur mit Benutzer und Passwort.
+
+**a) Freischalten:** `--allow-control` an die `ExecStart`-Zeile anhängen, dann `systemctl --user daemon-reload && systemctl --user restart ndashboard-agent`. Ohne diesen Schalter lehnt der Agent jede Steuerung ab.
+
+**b) Dem System erlauben, dass dein Benutzer ohne Passwortabfrage neu starten darf** (sonst zeigt die App bei den Knöpfen ein „*“). `BENUTZER` durch deinen Linux-Benutzernamen ersetzen:
+
+```sh
+sudo tee /etc/polkit-1/rules.d/50-ndashboard.rules <<'ENDE'
+polkit.addRule(function (action, subject) {
+  var erlaubt = ["org.freedesktop.login1.reboot", "org.freedesktop.login1.reboot-multiple-sessions",
+                 "org.freedesktop.login1.power-off", "org.freedesktop.login1.power-off-multiple-sessions",
+                 "org.freedesktop.login1.suspend", "org.freedesktop.login1.suspend-multiple-sessions"];
+  if (subject.user == "BENUTZER" && erlaubt.indexOf(action.id) >= 0) return polkit.Result.YES;
+});
+ENDE
+```
+
+Die Regel gilt sofort. Sie erlaubt diesem Benutzer nur Neustart, Herunterfahren und Ruhezustand – sonst nichts.
+
+**Achtung:** Nach dem Herunterfahren ist das Gerät aus und lässt sich aus der App nicht wieder einschalten.
+
+## 7. Auf dem NAS (Raspberry Pi)
+
+Damit du auch das NAS aus der App neu starten kannst, läuft derselbe Agent zusätzlich auf dem Pi (neben `nas-server.py`). Per SSH auf dem Pi die Schritte 1 bis 3 und 6 ausführen, dabei in der `ExecStart`-Zeile Dateien abschalten und die Steuerung freischalten:
+
+```
+ExecStart=/usr/bin/python3 %h/.local/bin/pc-agent.py --user ich --pass geheim --no-files --allow-control
+```
+
+`loginctl enable-linger $USER` nicht vergessen, sonst läuft der Agent auf dem Pi nur, solange du per SSH angemeldet bist. In der App unter **Einstellungen → NAS-Agent** die Adresse des Pi mit Port **5006** eintragen (nicht 5005 – das ist `nas-server.py`). Die Steuereinheit zeigt dann nebenbei auch Temperatur und RAM des Pi.
+
 ## Wenn etwas nicht klappt
 
 | Problem | Lösung |
@@ -90,6 +124,6 @@ Einstellungen → **PC-Agent (Sensoren)**: Adresse aus Schritt 2, Benutzer und P
 
 ## Sicherheit
 
-- Der Agent liefert nur Daten **aus** (lesend); über die App lässt sich am PC nichts verändern.
+- Ohne `--allow-control` liefert der Agent nur Daten **aus**. Mit `--allow-control` kommen genau drei Aktionen dazu (Neustart, Herunterfahren, Ruhezustand) – beliebige Befehle lassen sich nicht ausführen. Jede ausgelöste Aktion steht im Protokoll.
 - Die Verbindung ist unverschlüsselt (HTTP) und nur fürs Heimnetz gedacht. Port 5006 nie im Router freigeben.
 - Im Protokoll stehen Dateinamen und Pfade aus den überwachten Ordnern – überwache nur, was du in der App sehen willst.
