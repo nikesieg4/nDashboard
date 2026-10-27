@@ -90,3 +90,25 @@ body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .control-grid { display: grid; gap: var(--space-4); }
 .control-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
 @media (min-width: 900px) { .control-grid { grid-template-columns: 1fr 1fr; align-items: start; } }
+
+/* Admin-Bereiche (Spiel, Bürgerportal) */
+.op-field select { appearance: auto; min-height: 38px; }
+.check { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--signal); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { appearance: none; background: var(--bg-200); color: var(--ink-muted); border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-sm); padding: 6px 10px; font: inherit; font-size: 12px; letter-spacing: .04em; cursor: pointer; }
+.chip[aria-pressed="true"] { color: var(--on-signal); background: var(--signal); border-color: var(--signal); }
+.chip:disabled { opacity: .5; cursor: default; }
+.reward { border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); background: var(--bg-100); }
+.code-row { display: flex; gap: var(--space-2); align-items: flex-end; }
+.code-row .op-field { flex: 1; }
+.code-info { margin-top: var(--space-3); }
+.secret { margin: var(--space-3) 0; padding: var(--space-3); border: var(--hairline) dashed var(--signal); color: var(--signal); font-size: 18px; letter-spacing: .08em; word-break: break-all; }
+.chart-grid { display: grid; gap: var(--space-4); }
+.tile-btn { appearance: none; background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; display: block; }
+.tile-btn:disabled { cursor: default; }
+.tile-btn > .op-panel { height: 100%; }
+.modal-wide { max-width: 640px; }
+.tabs-scroll { overflow-x: auto; scrollbar-width: none; }
+.tabs-scroll .op-tab { flex: none; }
+@media (min-width: 900px) { .chart-grid { grid-template-columns: 1fr 1fr; } }
