@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) das **Management** (eigene Ziele und Sparpläne) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News und Chat zeigen noch Beispieldaten, Sicherheit ist noch mit nichts verbunden.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) das **Management** (eigene Ziele und Sparpläne) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News zeigt noch Beispieldaten, Sicherheit ist noch mit nichts verbunden, Chat ist ausgeschaltet.
 
 ## Dateien vom NAS
 
@@ -99,11 +99,10 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Management (Ziele) | `#/management` | ManagementScreen |
 | Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
-| Chat-Kanäle | `#/chat` | ChatScreen |
-| Unterhaltung | `#/conversation` | ChatScreen |
+| Chat (ausgeschaltet) | `#/chat` | ChatScreen |
 | Einstellungen (NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
-Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Chat, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
+Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Steuerung, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
 ## Aufbau
 
