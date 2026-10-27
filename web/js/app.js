@@ -1,11 +1,11 @@
 /* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
- * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
- * Banking (Stripe, banking.js) und die Einstellungen dazu.
+ * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js)
+ * und die Einstellungen dazu.
  * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
   var O = window.Ops, h = React.createElement, NAS = window.NAS, FilesUI = window.NDFiles;
-  var Agent = window.NDServices.Agent, Stripe = window.NDServices.Stripe;
+  var Agent = window.NDServices.Agent;
   var LOGO = 'img/logo.svg', LOGO_SMALL = 'img/logo-small.svg';
   function noop() {}
 
@@ -18,7 +18,6 @@
     file:         { title: 'Datei', nav: 'files' },
     sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sec', root: true },
     security:     { title: 'Sicherheit', nav: 'sec', root: true },
-    banking:      { title: 'Banking', sub: 'Stripe', nav: 'more', root: true },
     management:   { title: 'Management', sub: 'Q4 · 2026', nav: 'more', root: true },
     news:         { title: 'Bulletin', nav: 'more', root: true },
     chat:         { title: 'Chat', nav: 'chat', root: true },
@@ -27,7 +26,7 @@
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
-    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'], ['banking', 'bank', 'Banking'],
+    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'],
     ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', '5']
   ];
   var BOTTOM = [
@@ -249,34 +248,6 @@
       test: function () { return Agent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
   }
 
-  function StripeSettings() {
-    var cfg = Stripe.config() || {}, key = React.useState(cfg.key || ''), state = React.useState(null);
-    function test(e) {
-      e.preventDefault();
-      var k = key[0].trim();
-      if (/^pk_/.test(k)) return state[1]({ tone: 'danger', text: 'Das ist ein öffentlicher Schlüssel (pk_…). Benötigt wird ein eingeschränkter Schlüssel (rk_…).' });
-      if (!/^(rk|sk)_(live|test)_/.test(k)) return state[1]({ tone: 'danger', text: 'Schlüssel muss mit rk_live_ oder rk_test_ beginnen.' });
-      var previous = Stripe.config();
-      Stripe.save({ key: k });
-      state[1]({ tone: 'info', text: 'Verbinde …' });
-      Stripe.balance().then(function () { return Stripe.transactions(Math.floor(Date.now() / 1000) - 86400, 1); }).then(function () {
-        state[1]({ tone: 'ok', text: 'Verbunden' + (/_test_/.test(k) ? ' (Testmodus)' : '') + '. Gespeichert.' + (/^sk_/.test(k) ? ' Tipp: Ein eingeschränkter Schlüssel (rk_…) mit Leserechten ist sicherer.' : '') });
-      }, function (err) {
-        if (previous) Stripe.save(previous); else Stripe.save(null);
-        state[1]({ tone: 'danger', text: err.message + ' Nicht gespeichert.' });
-      });
-    }
-    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Stripe (Banking)', icon: 'bank' },
-      h('form', { className: 'op-col', style: { gap: 14 }, onSubmit: test },
-        h(O.TextField, { label: 'Eingeschränkter API-Schlüssel', type: 'password', value: key[0], onChange: function (e) { key[1](e.target.value); }, placeholder: 'rk_live_…', autoComplete: 'off', spellCheck: false,
-          hint: 'Stripe-Dashboard → Entwickler → API-Schlüssel → Eingeschränkten Schlüssel erstellen. Nur Lesen für „Balance“ und „Payouts“, alles andere „Keine“.' }),
-        h('div', { className: 'op-row' },
-          h(O.Button, { type: 'submit', icon: 'signal' }, 'Verbinden & speichern'),
-          Stripe.configured() ? h(O.Button, { variant: 'ghost', onClick: function () { location.hash = '#/banking'; } }, 'Zum Banking') : null),
-        state[0] ? h(O.Status, { tone: state[0].tone }, state[0].text) : null,
-        h('div', { className: 'op-field-hint' }, 'Der Schlüssel wird nur auf diesem Gerät gespeichert und nur für Leseabfragen verwendet.')));
-  }
-
   /** Update-Stand abonnieren (siehe update.js). */
   function useUpdate() {
     var st = React.useState(window.NDUpdate.state());
@@ -319,7 +290,6 @@
     return [
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
-      h(StripeSettings, { key: 'stripe' }),
       h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
         h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
@@ -330,10 +300,9 @@
 
   function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
   function Sensors() { return h(window.NDMonitor.Sensors); }
-  function Banking() { return h(window.NDBanking.Banking); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
-  var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security, banking: Banking,
+  var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
     management: Management, news: News, chat: Chat, conversation: Conversation, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
