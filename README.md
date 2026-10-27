@@ -60,13 +60,17 @@ Unter **Management → Spiel** dieselben Funktionen wie [Disponenten-Simulator-A
 
 ### Bürgerportal (ABIS-Konsole)
 
-Unter **Management → Bürgerportal** die [ABIS-Sicherheitskonsole](https://github.com/nikesieg4/dPUbtsXv3y) mit derselben Datenbank und denselben Rechten (RLS, Level, Zuordnungen, Einzelrechte). Bisher übernommen:
+Unter **Management → Bürgerportal** die komplette [ABIS-Sicherheitskonsole](https://github.com/nikesieg4/dPUbtsXv3y) mit derselben Datenbank und denselben Rechten (RLS, Level, Zuordnungen, Einzelrechte). Oben wählst du den **Bereich**; gesperrte Bereiche sind markiert:
 
-- **Lagezentrum** – Ledger-Integrität, Transaktionen und Sicherheitsereignisse der letzten 24 h, DB-Antwortzeit (alle 10 s), Alarme und Alarmstufe, Ereignisprotokoll, offene Vorgänge
-- **Register** – Bürger suchen und filtern, Stammdaten, Zuordnungen, Level, Konto sperren, Bürger anlegen (mit Startpasswort) und löschen
-- **Anträge** – Bewerbungen weiterschalten, bewilligen, ablehnen, schließen; Staatsbürgerschaftsanträge annehmen/ablehnen
+- **Überwachung:** Lagezentrum, Sicherheitsprotokoll (Bank-Audit, Anmeldungen, Datenänderungen, Verwaltungsaktionen, Live; CSV-Export), Datenbank (Datensätze, Tabellen & RLS, Profile, Konsistenz), Transaktionen
+- **Buchhaltung:** Bankmanagement (Konten, Geld buchen, Dauerzahlungen, Journal, Steuern, Integrität)
+- **Verwaltung:** Bürgerregister, Anmeldedaten, Anträge, Antragsarten, Termine, Justiz & Polizei, Kommunikation
+- **Steuerung:** Zuordnungen, Berechtigungen, Wahl & Umfrage, System & Wartung
+- **Konto:** Mein Konto (Rechte, Passwort ändern)
 
-Die übrigen Bereiche der Konsole (Protokoll, Datenbank, Transaktionen, Bank, Anmeldedaten, Antragsarten, Termine, Justiz, Kommunikation, Zuordnungen, Berechtigungen, Auswertungen, System) folgen schrittweise.
+Exporte (CSV, JSON, Sicherung) landen im Download-Ordner – auf Android über die App, weil die WebView keine `blob:`-Links herunterladen kann.
+
+Lagezentrum, Register und Anträge sind in `web/js/portal.js` nachgebaut. Die übrigen Bereiche liegen als unveränderte Kopie der Konsole in `portal/pages/` und `portal/components/`; `portal/lib/` verbindet sie mit der Anmeldung und dem Datenzugriff von nDashboard. Nach Änderungen in `portal/` (z. B. neue Version aus dem Konsolen-Repo kopiert) `tools/build-portal.sh` ausführen (braucht Node.js) und `web/js/portal-abis.js` mit einchecken – der Build prüft, dass beides zusammenpasst.
 
 ## Zuhause und unterwegs (WLAN / VPN)
 
@@ -121,7 +125,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Management (Ziele) | `#/management` | ManagementScreen |
 | Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
 | Management → Spiel (Codes-Admin) | `#/game` | ManagementScreen |
-| Management → Bürgerportal (ABIS) | `#/portal?s=lage` · `#/portal?s=register&id=…` · `#/portal?s=antraege` | ManagementScreen |
+| Management → Bürgerportal (ABIS) | `#/portal?s=lage` · `…?s=register&id=…` · `…?s=bank` usw. | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
 | Chat (ausgeschaltet) | `#/chat` | ChatScreen |
 | Einstellungen (Konten, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
@@ -143,7 +147,8 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/control.js Seite Steuereinheit
   js/auth.js    Anmeldung (Bürgerportal + Spiel), automatische Abmeldung
   js/game.js    Management → Spiel (Codes-Admin des Disponenten-Simulators)
-  js/portal.js  Management → Bürgerportal (ABIS-Konsole)
+  js/portal.js  Management → Bürgerportal (ABIS-Konsole): Datenzugriff, Lagezentrum, Register, Anträge
+  js/portal-abis.js übrige Konsolen-Bereiche, gebaut aus portal/ (nicht von Hand ändern)
   js/portal-model.js Datenmodell und Rechte des Bürgerportals (aus dPUbtsXv3y)
   js/ui.js      Auswahlliste, Chips, Fenster für die Admin-Bereiche
   js/update.js  Prüft GitHub Releases auf neue Versionen
@@ -152,7 +157,8 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   vendor/       React 18.3.1 und supabase-js 2.117.3 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
-tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll) + Anleitungen
+portal/     Bereiche der ABIS-Konsole (aus dPUbtsXv3y), gebaut mit tools/build-portal.sh
+tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll), build-portal.sh + Anleitungen
 ```
 
 ## Selbst bauen

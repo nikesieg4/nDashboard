@@ -112,3 +112,221 @@ body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .tabs-scroll { overflow-x: auto; scrollbar-width: none; }
 .tabs-scroll .op-tab { flex: none; }
 @media (min-width: 900px) { .chart-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ABIS-Konsole (Management → Bürgerportal, Bereiche aus portal/): Gestaltung aus dPUbtsXv3y/src/styles.css,
+ * nur innerhalb von .abis und mit den Farben/Schriften von Terminal Ops. */
+.abis {
+  --bg: var(--bg-000); --bg-raised: var(--bg-100); --bg-panel: var(--bg-100); --bg-hover: var(--bg-300); --bg-input: var(--bg-200);
+  --line: #3A3A3A; --line-soft: #2C2C2C; --text: var(--ink); --text-2: #C9C9C9; --text-3: var(--ink-muted); --text-4: var(--ink-faint);
+  --y: var(--signal); --y-hi: #FFE27A; --y-dim: var(--signal-dim); --y-fill: var(--signal-fill); --y-ink: var(--on-signal);
+  --ok-line: #4E9A5A; --ok-bg: rgba(127, 209, 139, 0.08); --warn-line: #A88E2A; --warn-bg: rgba(243, 212, 82, 0.08);
+  --bad: var(--danger); --bad-line: #D33A3A; --bad-bg: rgba(255, 92, 92, 0.08); --info-line: #3E8ED0; --info-bg: rgba(140, 196, 240, 0.08);
+  --font-head: var(--font-display); --font-ui: var(--font-display); --track: 0.14em; --corner: 22px;
+  font-size: 15px; line-height: 1.5; letter-spacing: 0.02em; color: var(--text); min-width: 0;
+}
+.abis h1, .abis h2, .abis h3 { font-family: var(--font-head); text-transform: uppercase; letter-spacing: var(--track); margin: 0; font-weight: 500; }
+.abis h1 { font-size: 30px; line-height: 1.1; } .abis h2 { font-size: 17px; } .abis h3 { font-size: 15px; }
+.abis p { margin: 0 0 10px; }
+.abis code, .abis .mono { font-family: var(--font-mono); }
+.abis a { color: var(--y); }
+.abis .eyebrow { font-family: var(--font-head); font-size: 12px; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3); }
+.abis .muted { color: var(--text-3); }
+.abis .small { font-size: 12.5px; }
+.abis .nowrap { white-space: nowrap; }
+.abis .break { word-break: break-all; }
+.abis .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.abis .row-between { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.abis .stack { display: flex; flex-direction: column; gap: 14px; }
+.abis .stack-lg { display: flex; flex-direction: column; gap: 24px; }
+.abis .grow { flex: 1 1 auto; min-width: 0; }
+.abis .val-ok { color: var(--ok); } .abis .val-bad { color: var(--bad); } .abis .val-warn { color: var(--y); }
+
+/* Eckwinkel: vier Ecken als Hintergrund-Striche */
+.abis .corners {
+  --cc: var(--text-4);
+  background:
+    linear-gradient(var(--cc), var(--cc)) top left / var(--corner) 2px no-repeat,
+    linear-gradient(var(--cc), var(--cc)) top left / 2px var(--corner) no-repeat,
+    linear-gradient(var(--cc), var(--cc)) top right / var(--corner) 2px no-repeat,
+    linear-gradient(var(--cc), var(--cc)) top right / 2px var(--corner) no-repeat,
+    linear-gradient(var(--cc), var(--cc)) bottom left / var(--corner) 2px no-repeat,
+    linear-gradient(var(--cc), var(--cc)) bottom left / 2px var(--corner) no-repeat,
+    linear-gradient(var(--cc), var(--cc)) bottom right / var(--corner) 2px no-repeat,
+    linear-gradient(var(--cc), var(--cc)) bottom right / 2px var(--corner) no-repeat;
+  padding: 10px;
+}
+.abis .corners.y { --cc: var(--y); }
+.abis .corners > .inner { border: 1px solid var(--line); background: rgba(30, 30, 30, 0.92); height: 100%; }
+
+/* Gelber Titelbalken */
+.abis .banner { background: var(--y); color: var(--y-ink); padding: 14px 22px; border-radius: 3px; font-family: var(--font-head); font-weight: 500; font-size: 28px; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.15; }
+.abis .banner-sub { margin-top: 8px; font-size: 14px; color: var(--text-4); letter-spacing: 0.08em; }
+.abis .banner-sub b { font-weight: 500; color: var(--text-3); font-size: 18px; margin-right: 8px; }
+
+/* ---------- Bausteine ---------- */
+.abis .panel { border: 1px solid var(--line); background: rgba(30, 30, 30, 0.92); min-width: 0; }
+.abis .panel-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 14px 18px 12px; border-bottom: 1px solid var(--line); }
+.abis .panel-h h2 { font-size: 15px; letter-spacing: 0.2em; color: var(--text); }
+.abis .panel-b { padding: 16px 18px; }
+.abis .panel.alert-bad { border-color: var(--bad-line); }
+.abis .panel.alert-warn { border-color: var(--warn-line); }
+.abis .panel.y { border-color: var(--y-dim); }
+
+.abis .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); background: rgba(30, 30, 30, 0.8); color: var(--text); font: inherit; font-family: var(--font-head); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.abis .btn:hover:not(:disabled) { border-color: var(--y); color: #fff; }
+.abis .btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.abis .btn-primary { border: 2px solid var(--y); color: var(--text); background: rgba(243, 212, 82, 0.05); }
+.abis .btn-primary:hover:not(:disabled) { background: var(--y); color: var(--y-ink); }
+.abis .btn-solid { background: var(--y); border-color: var(--y); color: var(--y-ink); font-weight: 600; }
+.abis .btn-solid:hover:not(:disabled) { background: var(--y-hi); color: var(--y-ink); }
+.abis .btn-danger { border-color: var(--bad-line); color: var(--bad); }
+.abis .btn-danger:hover:not(:disabled) { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+.abis .btn-ghost { border-color: transparent; background: none; color: var(--text-2); }
+.abis .btn-sm { min-height: 30px; padding: 0 10px; font-size: 12px; }
+.abis .btn-lg { min-height: 54px; font-size: 20px; letter-spacing: 0.16em; padding: 0 22px; justify-content: flex-start; }
+.abis .btn-block { width: 100%; }
+
+.abis .field { display: flex; flex-direction: column; gap: 6px; font-family: var(--font-head); font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); min-width: 0; }
+.abis .field .hint { text-transform: none; letter-spacing: 0.02em; font-family: var(--font-ui); font-size: 12.5px; color: var(--text-4); }
+.abis .field .err { text-transform: none; letter-spacing: 0.02em; font-family: var(--font-ui); font-weight: 600; font-size: 12.5px; color: var(--bad); }
+.abis .input, .abis .select, .abis .textarea { height: 40px; padding: 0 12px; background: var(--bg-input); border: 1px solid var(--line-strong); border-radius: 4px; color: var(--text); font: inherit; font-size: 14px; letter-spacing: 0.04em; text-transform: none; min-width: 0; width: 100%; }
+.abis .textarea { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
+.abis .input:focus, .abis .select:focus, .abis .textarea:focus { outline: none; border-color: var(--y); }
+.abis .input.mono { font-family: var(--font-mono); letter-spacing: 0; }
+.abis .input.big { height: 54px; font-size: 18px; border: 1px solid var(--y-dim); padding: 0 18px; }
+.abis .check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text-2); cursor: pointer; }
+.abis .check input { margin-top: 4px; accent-color: var(--y); }
+.abis .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 14px 16px; border: 1px solid var(--line); background: rgba(30, 30, 30, 0.9); }
+.abis .filters .field { width: auto; }
+
+.abis .badge { display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px; border: 1px solid var(--line-strong); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; color: var(--text-2); }
+.abis .badge.ok { border-color: var(--ok-line); color: var(--ok); }
+.abis .badge.warn { border-color: var(--warn-line); color: var(--warn); }
+.abis .badge.bad { border-color: var(--bad-line); color: var(--bad); }
+.abis .badge.info { border-color: var(--info-line); color: var(--info); }
+.abis .badge.amber { background: var(--y); border-color: var(--y); color: var(--y-ink); font-weight: 600; }
+.abis .badge.solid-bad { background: var(--bad-line); border-color: var(--bad-line); color: #fff; }
+
+.abis .msg { padding: 10px 12px; border: 1px solid var(--line-strong); font-size: 14px; }
+.abis .msg.ok { border-color: var(--ok-line); background: var(--ok-bg); color: var(--ok); }
+.abis .msg.bad { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+.abis .msg.warn { border-color: var(--warn-line); background: var(--warn-bg); color: var(--y); }
+.abis .msg.info { border-color: var(--info-line); background: var(--info-bg); color: var(--info); }
+
+.abis .alert-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid var(--bad-line); background: var(--bad-bg); font-size: 14px; }
+.abis .alert-bar.warn { border-color: var(--warn-line); background: var(--warn-bg); }
+.abis .alert-bar.info { border-color: var(--info-line); background: var(--info-bg); }
+
+/* Kennzahlen-Kacheln mit Eckwinkeln */
+.abis .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 22px; }
+.abis .stat { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 22px 24px; min-width: 0; height: 100%; }
+.abis .stat-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.abis .stat-k { font-family: var(--font-head); font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-2); }
+.abis .stat-v { font-family: var(--font-head); font-weight: 400; font-size: 46px; line-height: 1; letter-spacing: 0.04em; color: #fff; }
+.abis .stat-m { font-size: 12.5px; color: var(--text-4); letter-spacing: 0.06em; }
+.abis .stat-v.ok { color: var(--ok); } .abis .stat-v.bad { color: var(--bad); } .abis .stat-v.warn { color: var(--y); }
+.abis .stat-icon { color: var(--text); margin-bottom: 4px; }
+.abis button.stat-btn { all: unset; display: block; cursor: pointer; height: 100%; }
+.abis .stats > * { min-width: 0; }
+.abis .stats .corners { height: 100%; }
+.abis button.stat-btn:hover .inner { border-color: var(--y-dim); }
+.abis button.stat-btn:focus-visible { outline: 2px solid var(--y); }
+
+/* Lagezentrum: drei Spalten wie ein Leitstand */
+.abis .dash { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) minmax(260px, 330px); gap: 22px; align-items: start; }
+.abis .dash > * { min-width: 0; }
+.abis .dash .btn-lg { font-size: 18px; }
+.abis .chart-grid .chart-title { font-size: 13px; letter-spacing: 0.12em; }
+.abis .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; }
+@media (max-width: 560px) { .abis .chart-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1280px) { .abis .dash { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .abis .dash > .dash-mid { grid-column: 1 / -1; order: -1; } }
+@media (max-width: 760px) { .abis .dash { grid-template-columns: minmax(0, 1fr); } }
+.abis .cols { display: flex; flex-wrap: wrap; gap: 22px; align-items: stretch; }
+.abis .col-2 { flex: 2 1 560px; min-width: 0; }
+.abis .col-1 { flex: 1 1 320px; min-width: 0; }
+
+.abis .table-wrap { overflow-x: auto; }
+.abis .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.abis .table th { text-align: left; padding: 11px 14px; font-family: var(--font-head); font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.abis .table td { padding: 9px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.abis .table.mono td { font-family: var(--font-mono); font-size: 12.5px; }
+.abis .table tr.click { cursor: pointer; }
+.abis .table tr.click:hover td { background: var(--bg-hover); }
+.abis .table tr.row-bad td { background: var(--bad-bg); }
+.abis .table tr.row-warn td { background: var(--warn-bg); }
+.abis .table .num { text-align: right; white-space: nowrap; }
+.abis .empty { padding: 22px; text-align: center; color: var(--text-4); font-size: 14px; letter-spacing: 0.06em; }
+
+/* Ereignisprotokoll im Terminal-Stil */
+.abis .log { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.12em; }
+.abis .log li { padding: 8px 0 8px 16px; position: relative; }
+.abis .log li::before { content: '–'; position: absolute; left: 0; color: var(--text-3); }
+.abis .log .t { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); letter-spacing: 0.14em; }
+.abis .log .bad { color: var(--bad); } .abis .log .ok { color: var(--ok); } .abis .log .warn { color: var(--y); }
+
+/* Infospalte (Beschriftung + farbiger Wert) */
+.abis .info-list { display: flex; flex-direction: column; gap: 14px; }
+.abis .info-list .k { font-size: 14px; letter-spacing: 0.1em; color: var(--text); }
+.abis .info-list .v { font-size: 14px; letter-spacing: 0.1em; color: var(--ok); }
+.abis .info-list .v.bad { color: var(--bad); } .abis .info-list .v.warn { color: var(--y); } .abis .info-list .v.dim { color: var(--text-3); }
+.abis .info-title { font-size: 20px; letter-spacing: 0.1em; color: var(--text-3); margin-bottom: 4px; }
+
+.abis .kv { display: grid; grid-template-columns: minmax(140px, 210px) 1fr; gap: 0; font-size: 14px; }
+.abis .kv > div { padding: 8px 0; border-bottom: 1px solid var(--line-soft); min-width: 0; word-break: break-word; }
+.abis .kv > div:nth-child(odd) { color: var(--text-3); padding-right: 12px; letter-spacing: 0.06em; }
+
+.abis .list-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: 14px; }
+.abis .list-row:last-child { border-bottom: 0; }
+
+/* Reiter wie Karteikarten */
+.abis .tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--y-dim); }
+.abis .tab { padding: 8px 18px 6px; border: 0; border-radius: 4px 4px 0 0; background: #2E2E2E; color: var(--text-2); font: inherit; font-family: var(--font-head); font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; }
+.abis .tab:hover { color: #fff; }
+.abis .tab.active { background: var(--y); color: var(--y-ink); font-weight: 500; }
+
+.abis .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.abis .chip { padding: 5px 10px; border: 1px solid var(--line-strong); background: transparent; color: var(--text-2); font: inherit; font-size: 13px; letter-spacing: 0.06em; cursor: pointer; }
+.abis .chip:hover { border-color: var(--text-3); }
+.abis .chip.on { border-color: var(--y); color: var(--y); background: var(--warn-bg); }
+.abis .chip:disabled { cursor: default; opacity: 0.7; }
+
+.abis .tri { display: inline-flex; border: 1px solid var(--line-strong); }
+.abis .tri button { padding: 3px 9px; border: 0; background: none; color: var(--text-3); font: inherit; font-size: 12px; letter-spacing: 0.06em; cursor: pointer; }
+.abis .tri button + button { border-left: 1px solid var(--line-strong); }
+.abis .tri button.on-default { background: var(--bg-hover); color: var(--text); }
+.abis .tri button.on-allow { background: var(--ok-line); color: #08130c; font-weight: 600; }
+.abis .tri button.on-deny { background: var(--bad-line); color: #fff; font-weight: 600; }
+
+.abis .dialog-back { position: fixed; inset: 0; background: rgba(8, 8, 8, 0.78); z-index: 80; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto; }
+.abis .dialog { width: 100%; max-width: 580px; background: var(--bg-panel); border: 1px solid var(--y-dim); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+.abis .dialog.wide { max-width: 940px; }
+.abis .dialog-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0; background: var(--y); color: var(--y-ink); }
+.abis .dialog-h h2 { padding: 12px 18px; color: var(--y-ink); font-size: 17px; letter-spacing: 0.16em; }
+.abis .dialog-b { padding: 18px; }
+.abis .x-btn { width: 46px; height: 46px; border: 0; background: none; color: var(--y-ink); cursor: pointer; font-size: 22px; line-height: 1; }
+
+.abis .secret { padding: 12px 14px; border: 2px solid var(--y); background: var(--warn-bg); }
+.abis .secret-v { font-family: var(--font-mono); font-size: 22px; font-weight: 600; letter-spacing: 0.1em; margin: 6px 0; color: var(--y-hi); word-break: break-all; }
+
+.abis .pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 0 0; font-family: var(--font-mono); font-size: 12px; color: var(--text-3); }
+.abis .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--text-4); flex-shrink: 0; }
+.abis .dot.ok { background: var(--ok); } .abis .dot.bad { background: var(--bad); } .abis .dot.warn { background: var(--y); }
+.abis .dot.live { background: var(--ok); animation: abis-pulse 2s infinite; }
+@keyframes abis-pulse { 0% { box-shadow: 0 0 0 0 rgba(127, 209, 139, 0.6); } 70% { box-shadow: 0 0 0 7px rgba(127, 209, 139, 0); } 100% { box-shadow: 0 0 0 0 rgba(127, 209, 139, 0); } }
+.abis .json { margin: 0; padding: 12px; background: #141414; border: 1px solid var(--line); font-family: var(--font-mono); font-size: 12px; color: var(--text-2); max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.abis .bar { height: 6px; background: var(--line); position: relative; }
+.abis .bar > span { position: absolute; inset: 0 auto 0 0; background: var(--y); }
+.abis .chart { display: block; width: 100%; height: auto; overflow: visible; }
+.abis .chart text { font-family: var(--font-ui); font-size: 12px; fill: var(--text-3); letter-spacing: 0.04em; }
+.abis .chart-title { text-align: center; font-family: var(--font-head); font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2); margin-bottom: 6px; }
+.abis .abis-splash { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-family: var(--font-head); font-size: 14px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-3); }
+
+
+@media (max-width: 960px) {
+  .abis .banner { font-size: 21px; padding: 12px 16px; }
+  .abis .stat-v { font-size: 36px; }
+  .abis .kv { grid-template-columns: 1fr; }
+  .abis .kv > div:nth-child(odd) { border-bottom: 0; padding-bottom: 0; }
+  .abis .input, .abis .select, .abis .textarea { font-size: 16px; }
+  .abis .btn-lg { font-size: 16px; letter-spacing: 0.1em; white-space: normal; text-align: left; }
+}

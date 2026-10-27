@@ -1,6 +1,7 @@
 /* nDashboard — Datenmodell und Formatierung des Bürgerportals (Maiskolbistan).
  * Übernommen aus nikesieg4/dPUbtsXv3y (src/lib/model.js, src/lib/format.js), damit die
  * Admin-Bereiche unter Management dieselben Regeln anwenden wie Portal und ABIS-Konsole.
+ * Einzige Anpassung: downloadText speichert auf Android über window.NDNative.saveText.
  * Bei Änderungen dort hier nachziehen. */
 (function () {
   'use strict';
@@ -365,6 +366,8 @@
   }
   function buildCsv(header, rows) { return '﻿' + [header].concat(rows).map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n'; }
   function downloadText(name, text, mime) {
+    // nDashboard: Android-WebView kann blob:-Links nicht herunterladen → über die App-Brücke speichern
+    if (window.NDNative && window.NDNative.saveText) { window.NDNative.saveText(name, mime || 'text/csv;charset=utf-8', text); return; }
     const url = URL.createObjectURL(new Blob([text], { type: mime || 'text/csv;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);

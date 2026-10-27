@@ -1,6 +1,7 @@
 /* nDashboard — Management → Bürgerportal: ABIS-Sicherheitskonsole für das Bürgerportal Maiskolbistan.
- * Übernommen aus nikesieg4/dPUbtsXv3y: Datenzugriff (src/lib/db.js, state.jsx) und bisher die Bereiche
- * Lagezentrum, Bürgerregister und Anträge. Weitere Bereiche folgen schrittweise.
+ * Übernommen aus nikesieg4/dPUbtsXv3y: Datenzugriff (src/lib/db.js, state.jsx) und die Bereiche
+ * Lagezentrum, Bürgerregister und Anträge. Die übrigen Bereiche kommen aus portal/ (gebaut zu
+ * portal-abis.js) und melden sich über NDPortal.register an.
  * Was erlaubt ist, entscheidet die Datenbank (RLS, security-definer-Funktionen); die App blendet nur aus,
  * was ohnehin abgelehnt würde – dieselben Regeln wie Portal und ABIS-Konsole (portal-model.js). */
 (function () {
@@ -62,6 +63,12 @@
     return (build ? build(q) : q).then(function (r) {
       if (r.error) return { ok: false, missing: missingTable(r.error), message: r.error.message };
       return { ok: true, rows: r.data || [], total: r.count != null ? r.count : (r.data || []).length };
+    }, function () { return { ok: false, message: 'Server nicht erreichbar.' }; });
+  }
+  function monitorRpc(name, args) {
+    return sb.rpc(name, args || {}).then(function (r) {
+      if (r.error) return { ok: false, missing: missingTable(r.error), message: r.error.message };
+      return { ok: true, data: r.data };
     }, function () { return { ok: false, message: 'Server nicht erreichbar.' }; });
   }
   function logAction(action, target, detail) {
@@ -153,7 +160,7 @@
       var p = data.profiles.filter(function (x) { return x.citizen_id === id || x.id === id; })[0]; return p ? p.name : id;
     }
     var v = { kv: data.kv, val: val, profiles: data.profiles, registry: registry, citizens: citizens, units: units, perms: perms, me: me, nameOf: nameOf,
-      live: data.live, events: data.events, loadError: data.loadError, lastSync: data.lastSync };
+      live: data.live, events: data.events, loadError: data.loadError, lastSync: data.lastSync, note: note, reloadAll: reloadAll, mutate: mutate };
     cache = { kv: data.kv, profiles: data.profiles, v: v };
     return v;
   }
@@ -260,14 +267,14 @@
     var integ = integrity[0];
 
     var alerts = [];
-    if (integ && integ.ok === false) alerts.push({ tone: 'danger', text: 'Integritätsprüfung meldet Abweichungen im Ledger.' });
-    burst.forEach(function (n) { alerts.push({ tone: 'danger', text: n + ' abgelehnte/fehlgeschlagene Bankvorgänge desselben Akteurs in 15 Minuten.' }); });
-    if (lastPing && !lastPing.ok) alerts.push({ tone: 'danger', text: 'Datenbank antwortet nicht.' });
-    if (sched[0] && sched[0].ok !== false && sched[0].job_scheduled === false) alerts.push({ tone: 'warn', text: 'Kein Scheduler eingerichtet – Dauerzahlungen laufen nicht automatisch.' });
-    if (sched[0] && sched[0].due_now > 0) alerts.push({ tone: 'warn', text: sched[0].due_now + ' Dauerzahlung(en) fällig und nicht ausgeführt.' });
-    if (txFailed.length >= 5) alerts.push({ tone: 'warn', text: txFailed.length + ' fehlgeschlagene Transaktionen in 24 h.' });
-    if (maint.on) alerts.push({ tone: 'info', text: 'Wartungsmodus ist aktiv' + (maint.target ? ' (gezielt für ' + app.nameOf(maint.target) + ')' : '') + '.' });
-    if (auth && auth.missing) alerts.push({ tone: 'info', text: 'Überwachungstabellen sind noch nicht eingerichtet (sql/abis-ueberwachung.sql).' });
+    if (integ && integ.ok === false) alerts.push({ tone: 'danger', text: 'Integritätsprüfung meldet Abweichungen im Ledger.', to: 'bank' });
+    burst.forEach(function (n) { alerts.push({ tone: 'danger', text: n + ' abgelehnte/fehlgeschlagene Bankvorgänge desselben Akteurs in 15 Minuten.', to: 'protokoll' }); });
+    if (lastPing && !lastPing.ok) alerts.push({ tone: 'danger', text: 'Datenbank antwortet nicht.', to: 'datenbank' });
+    if (sched[0] && sched[0].ok !== false && sched[0].job_scheduled === false) alerts.push({ tone: 'warn', text: 'Kein Scheduler eingerichtet – Dauerzahlungen laufen nicht automatisch.', to: 'bank' });
+    if (sched[0] && sched[0].due_now > 0) alerts.push({ tone: 'warn', text: sched[0].due_now + ' Dauerzahlung(en) fällig und nicht ausgeführt.', to: 'bank' });
+    if (txFailed.length >= 5) alerts.push({ tone: 'warn', text: txFailed.length + ' fehlgeschlagene Transaktionen in 24 h.', to: 'transaktionen' });
+    if (maint.on) alerts.push({ tone: 'info', text: 'Wartungsmodus ist aktiv' + (maint.target ? ' (gezielt für ' + app.nameOf(maint.target) + ')' : '') + '.', to: 'system' });
+    if (auth && auth.missing) alerts.push({ tone: 'info', text: 'Überwachungstabellen sind noch nicht eingerichtet (sql/abis-ueberwachung.sql).', to: 'datenbank' });
     var level = Math.min(5, 1 + alerts.filter(function (a) { return a.tone === 'danger'; }).length * 2 + alerts.filter(function (a) { return a.tone === 'warn'; }).length);
     var levelTone = level >= 4 ? 'danger' : level >= 2 ? 'warn' : 'ok';
 
@@ -276,7 +283,10 @@
       .sort(function (x, y) { return y.ts - x.ts; }).slice(0, 10);
 
     return [
-      alerts.map(function (a, i) { return h(O.Alert, { key: 'a' + i, tone: a.tone, title: a.tone === 'danger' ? 'Alarm' : a.tone === 'warn' ? 'Warnung' : 'Hinweis' }, a.text); }),
+      alerts.map(function (a, i) {
+        return h(O.Alert, { key: 'a' + i, tone: a.tone, title: a.tone === 'danger' ? 'Alarm' : a.tone === 'warn' ? 'Warnung' : 'Hinweis' }, a.text,
+          h('div', { style: { marginTop: 8 } }, h(O.Button, { size: 'sm', variant: 'ghost', onClick: function () { go(a.to); } }, 'Ansehen →')));
+      }),
       h('div', { key: 'tiles', className: 'g2 tiles-desktop' },
         h('button', { type: 'button', className: 'tile-btn', disabled: !isBank, onClick: checkIntegrity, 'aria-label': 'Integrität prüfen' },
           h(O.StatTile, { label: 'Ledger-Integrität', value: !isBank ? '—' : integ ? (integ.ok ? 'INTAKT' : 'FEHLER') : checking[0] ? '…' : '—',
@@ -646,11 +656,24 @@
   /* =====================================================================
      SEITE
      ===================================================================== */
+  /* Bereiche wie in der Konsole; die übrigen meldet portal-abis.js über register() an */
   var SECTIONS = [
-    { id: 'lage', label: 'Lagezentrum', C: Lagezentrum, ok: function () { return true; } },
-    { id: 'register', label: 'Register', C: Register, ok: function (me) { return me.is >= M.CLEARANCE.register || me.allow.indexOf('nav:register') >= 0; }, need: 'Level 3' },
-    { id: 'antraege', label: 'Anträge', C: Antraege, ok: function (me) { return me.is >= M.CLEARANCE.antraege || me.allow.indexOf('nav:antraege') >= 0; }, need: 'Level 3' }
+    { order: 1, group: 'Überwachung', id: 'lage', label: 'Lagezentrum', C: Lagezentrum, ok: function () { return true; } },
+    { order: 6, group: 'Verwaltung', id: 'register', label: 'Bürgerregister', C: Register, ok: function (me) { return me.is >= M.CLEARANCE.register || me.allow.indexOf('nav:register') >= 0; }, need: 'Level 3' },
+    { order: 8, group: 'Verwaltung', id: 'antraege', label: 'Anträge', C: Antraege, ok: function (me) { return me.is >= M.CLEARANCE.antraege || me.allow.indexOf('nav:antraege') >= 0; }, need: 'Level 3' }
   ];
+  function register(list) { SECTIONS = SECTIONS.concat(list).sort(function (a, b) { return a.order - b.order; }); }
+
+  /** Bereichsauswahl, gruppiert wie die Navigation der Konsole; gesperrte Bereiche sind markiert. */
+  function SectionPicker(p) {
+    var groups = SECTIONS.map(function (x) { return x.group; }).filter(function (g, i, a) { return a.indexOf(g) === i; });
+    return h(U.Select, { label: 'Bereich', value: p.value, onChange: function (id) { go(id); } },
+      groups.map(function (g) {
+        return h('optgroup', { key: g, label: g }, SECTIONS.filter(function (x) { return x.group === g; }).map(function (x) {
+          return h('option', { key: x.id, value: x.id }, x.label + (p.me && !x.ok(p.me) ? ' (gesperrt)' : ''));
+        }));
+      }));
+  }
 
   function Page(props) {
     var a = A.useAuth(), app = usePortal();
@@ -660,16 +683,16 @@
       h('div', { key: 's', className: 'op-row', style: { justifyContent: 'space-between' } },
         h(O.Status, { tone: app.live ? 'ok' : 'warn' }, (me ? (me.isAdmin ? 'Administrator' : M.displayName(me.name)) + ' · L' + me.is : 'Anmelden …') + ' · ' + (app.live ? 'Live' : 'Offline')),
         h(O.Button, { variant: 'ghost', size: 'sm', icon: 'lock', onClick: A.logoutPortal }, 'Abmelden')),
-      h(O.Tabs, { key: 't', className: 'tabs-scroll', items: SECTIONS.map(function (x) { return { id: x.id, label: x.label }; }), value: cur.id, onChange: function (id) { go(id); } }),
+      h(SectionPicker, { key: 't', value: cur.id, me: me }),
       app.loadError ? h(O.Alert, { key: 'e', tone: 'danger', title: 'Daten nicht geladen' }, app.loadError, h('div', { style: { marginTop: 8 } }, h(O.Button, { size: 'sm', variant: 'outline', onClick: reloadAll }, 'Erneut laden'))) : null,
       !app.kv || !me ? h('div', { key: 'l', className: 'hint' }, 'Lade Staatsdaten …')
-        : cur.ok(me) ? h(cur.C, { key: cur.id + (props.id || ''), id: props.id }) : h(Denied, { key: 'x', need: cur.need }),
-      h('div', { key: 'f', className: 'hint' }, 'Weitere Bereiche der ABIS-Konsole (Protokoll, Datenbank, Bank, Justiz …) folgen.')
+        : cur.ok(me) ? h(cur.C, { key: cur.id + (props.id || ''), id: props.id }) : h(Denied, { key: 'x', need: cur.need })
     ];
   }
 
-  window.NDPortal = { Page: Page, title: function (section, id) {
+  window.NDPortal = { Page: Page, register: register, title: function (section, id) {
     var cur = SECTIONS.filter(function (x) { return x.id === section; })[0] || SECTIONS[0];
     return id ? id : cur.label;
-  } };
+  }, internal: { sb: sb, usePortal: usePortal, adminAction: adminAction, getRaw: getRaw, kvMutate: kvMutate, bankCall: bankCall, monitorQuery: monitorQuery,
+    monitorRpc: monitorRpc, logAction: logAction, pingDb: pingDb, pingFunction: pingFunction } };
 })();

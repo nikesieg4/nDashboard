@@ -1,6 +1,7 @@
 package de.nikesieg4.ndashboard;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -12,6 +13,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -21,6 +23,9 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 /** Hülle um die Weboberfläche aus assets/ (gemeinsamer Ordner web/). */
 public class MainActivity extends Activity {
@@ -181,6 +186,42 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, safeName + " wird in Downloads gespeichert", Toast.LENGTH_SHORT).show());
                 return true;
             } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /**
+         * Speichert einen in der App erzeugten Text (CSV-Export, JSON-Sicherung) im Download-Ordner.
+         * blob:-Links aus der Weboberfläche kann der DownloadManager nicht laden.
+         */
+        @JavascriptInterface
+        public boolean saveText(String name, String mimeType, String text) {
+            String safeName = name.replace('/', '_');
+            String mime = mimeType.split(";")[0].trim();
+            try {
+                byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.Downloads.DISPLAY_NAME, safeName);
+                    values.put(MediaStore.Downloads.MIME_TYPE, mime);
+                    Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                    if (uri == null) {
+                        return false;
+                    }
+                    try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                        out.write(bytes);
+                    }
+                } else {
+                    // Vor Android 10 bräuchte der öffentliche Ordner eine Speicher-Berechtigung
+                    File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    try (OutputStream out = new FileOutputStream(new File(dir, safeName))) {
+                        out.write(bytes);
+                    }
+                }
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, safeName + " in Downloads gespeichert", Toast.LENGTH_SHORT).show());
+                return true;
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Speichern fehlgeschlagen", Toast.LENGTH_LONG).show());
                 return false;
             }
         }
