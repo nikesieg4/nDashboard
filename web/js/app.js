@@ -1,11 +1,12 @@
 /* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
- * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
- * Management (eigene Ziele, goals.js) und die Einstellungen dazu.
+ * Anmeldung (auth.js), Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
+ * Steuereinheit (control.js), Management (Ziele: goals.js, Spiel: game.js, Bürgerportal: portal.js)
+ * und die Einstellungen dazu.
  * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
   var O = window.Ops, h = React.createElement, NAS = window.NAS, FilesUI = window.NDFiles;
-  var Agent = window.NDServices.Agent;
+  var Agent = window.NDServices.Agent, Auth = window.NDAuth;
   var LOGO = 'img/logo.svg', LOGO_SMALL = 'img/logo-small.svg';
   function noop() {}
 
@@ -20,6 +21,8 @@
     security:     { title: 'Sicherheit', sub: 'Nicht verbunden', nav: 'more', root: true },
     management:   { title: 'Management', sub: 'Ziele & Sparpläne', nav: 'more', root: true },
     goal:         { title: 'Ziel', nav: 'more' },
+    game:         { title: 'Management', sub: 'Spiel · Disponenten-Simulator', nav: 'more', root: true },
+    portal:       { title: 'Management', sub: 'Bürgerportal · ABIS', nav: 'more', root: true },
     news:         { title: 'Bulletin', nav: 'more', root: true },
     chat:         { title: 'Chat', sub: 'Ausgeschaltet', nav: 'more', root: true },
     settings:     { title: 'Einstellungen', nav: 'more' }
@@ -40,7 +43,7 @@
     var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
     var id = q < 0 ? raw : raw.slice(0, q);
     var params = new URLSearchParams(q < 0 ? '' : raw.slice(q + 1));
-    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, ''), id: params.get('id') || '' };
+    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, ''), id: params.get('id') || '', section: params.get('s') || '' };
   }
   function go(id) { location.hash = '#/' + id; }
   function back() { if (history.length > 1) history.back(); else go('home'); }
@@ -72,11 +75,36 @@
       h(O.ListItem, { icon: 'signal', title: 'Netz: ' + (net.profile === 'vpn' ? 'VPN' : 'WLAN'), subtitle: net.checking ? 'prüfe …' : net.mode === 'auto' ? 'automatisch erkannt' : 'fest eingestellt',
         onClick: function () { props.onNavigate('settings'); } }),
       h(O.Button, { variant: 'ghost', icon: 'settings', onClick: function () { props.onNavigate('settings'); } }, 'Einstellungen'),
-      h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { props.onNavigate('login'); } }, 'Abmelden'));
+      h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { Auth.logout(); } }, 'Abmelden'));
   }
 
   /* ---------- Seiten ---------- */
+  /** Ein Login für Bürgerportal und Spiel (auth.js). Ohne Netz: „Ohne Anmeldung weiter“. */
   function Login() {
+    var a = Auth.useAuth(), cfg = Auth.settings();
+    var user = React.useState(a.user || cfg.user), pass = React.useState(''), busy = React.useState(false), result = React.useState(null);
+    var fails = React.useState(0), lockUntil = React.useState(0), now = React.useState(Date.now());
+    React.useEffect(function () { var t = setInterval(function () { now[1](Date.now()); }, 1000); return function () { clearInterval(t); }; }, []);
+    var locked = lockUntil[0] > now[0];
+
+    function submit(e) {
+      e.preventDefault();
+      if (locked || busy[0]) return;
+      busy[1](true); result[1](null);
+      Auth.login(user[0], pass[0]).then(function (r) {
+        busy[1](false); pass[1]('');
+        if (r.ok) {
+          var failed = [r.portal, r.game].filter(function (x) { return !x.ok; })[0];
+          if (failed) setTimeout(function () { FilesUI.toast(failed.reason, 'warn'); }, 300);
+          return;
+        }
+        result[1](r);
+        var n = fails[0] + 1; fails[1](n);
+        if (n >= 3) lockUntil[1](Date.now() + Math.min(300, 15 * Math.pow(2, n - 3)) * 1000); // wachsende Wartezeit nach Fehlversuchen
+      });
+    }
+
+    var r = result[0];
     return h('div', { className: 'login op-grid-bg' },
       h('div', { className: 'spacer' }),
       h(O.Panel, { variant: 'framed', className: 'login-card' },
@@ -84,12 +112,17 @@
           h(O.LogoSlot, { src: LOGO, alt: 'nDashboard', width: 80, height: 80 }),
           h('div', { className: 'op-mono', style: { color: 'var(--signal)' } }, 'SYSTEM ONLINE'),
           h('div', { style: { fontSize: 20, fontWeight: 600, letterSpacing: '.1em' } }, 'BENUTZER-ANMELDUNG')),
-        h('form', { className: 'op-col', style: { gap: 14, marginTop: 20 }, onSubmit: function (e) { e.preventDefault(); go('home'); } },
-          h(O.TextField, { label: 'Name', placeholder: 'Operator-Name' }),
-          h(O.TextField, { label: 'Zugangscode', type: 'password', placeholder: '••••••••••••' }),
-          h(O.Toggle, { label: 'Gerät merken' }),
-          h(O.Button, { icon: 'lock', type: 'submit' }, 'Anmelden'))),
-      h('div', { className: 'hint' }, 'Sitzung verschlüsselt · AES-256'),
+        h('form', { className: 'op-col', style: { gap: 14, marginTop: 20 }, onSubmit: submit },
+          h(O.TextField, { label: 'Benutzer', value: user[0], onChange: function (e) { user[1](e.target.value); }, autoComplete: 'username', spellCheck: false, placeholder: 'Administrator' }),
+          h(O.TextField, { label: 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password', placeholder: '••••••••••••' }),
+          h(O.Button, { icon: 'lock', type: 'submit', disabled: busy[0] || locked || !user[0].trim() || !pass[0] }, busy[0] ? 'Prüfe Zugang …' : 'Anmelden'),
+          a.notice && !r ? h(O.Status, { tone: 'warn' }, a.notice) : null,
+          r ? h('div', { className: 'op-col', role: 'alert' },
+            h(O.Status, { tone: 'danger' }, r.portal.reason), h(O.Status, { tone: 'danger' }, r.game.reason)) : null,
+          locked ? h(O.Status, { tone: 'warn' }, 'Zu viele Fehlversuche. Nächster Versuch in ' + Math.ceil((lockUntil[0] - now[0]) / 1000) + ' s.') : null,
+          h(O.Button, { variant: r && r.offline ? 'outline' : 'ghost', icon: 'door', onClick: Auth.skip }, 'Ohne Anmeldung weiter'))),
+      h('div', { className: 'hint' }, 'Bürgerportal + Disponenten-Simulator · Abmeldung nach ' + Auth.idleMinutes + ' min ohne Eingabe'),
+      cfg.gamePrefix ? null : h('div', { className: 'hint' }, 'Spiel-Präfix noch nicht eingerichtet: nach dem Login unter Einstellungen → Konten eintragen.'),
       h('div', { className: 'spacer' }));
   }
 
@@ -257,8 +290,33 @@
       status ? h('div', { style: { marginTop: 10 } }, h(O.Status, { tone: status.tone }, status.text)) : null);
   }
 
+  /** Konten für die Admin-Bereiche: Portal-Benutzer und Präfix des Spiel-Passworts (nur auf diesem Gerät). */
+  function AccountSettings() {
+    var a = Auth.useAuth(), cfg = Auth.settings();
+    var user = React.useState(cfg.user), prefix = React.useState(cfg.gamePrefix), saved = React.useState(false);
+    function save(e) {
+      e.preventDefault();
+      Auth.saveSettings({ user: user[0].trim() || 'Administrator', gamePrefix: prefix[0] });
+      saved[1](true);
+    }
+    return h(O.Panel, { variant: 'framed', title: 'Konten (Management)', icon: 'user' },
+      h(O.InfoList, { items: [
+        { label: 'Bürgerportal', value: a.portal ? 'angemeldet · ' + (a.portal.is_admin ? 'Administrator' : a.portal.name || a.portal.email) : 'nicht angemeldet', tone: a.portal ? 'ok' : 'neutral' },
+        { label: 'Spiel', value: a.game ? 'angemeldet bis ' + new Date(a.game.expires).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'nicht angemeldet', tone: a.game ? 'ok' : 'neutral' }] }),
+      h('form', { className: 'op-col', style: { gap: 14, marginTop: 14 }, onSubmit: save },
+        h(O.TextField, { label: 'Benutzer (Bürgerportal)', value: user[0], onChange: function (e) { user[1](e.target.value); saved[1](false); }, autoComplete: 'off', spellCheck: false,
+          hint: '„Administrator“ oder die E-Mail-Adresse des Portal-Kontos.' }),
+        h(O.TextField, { label: 'Präfix für das Spiel-Passwort', type: 'password', value: prefix[0], onChange: function (e) { prefix[1](e.target.value); saved[1](false); }, autoComplete: 'off',
+          hint: 'Wird beim Login vor dein Passwort gesetzt (Präfix + Passwort = Codes-Admin-Passwort). Bleibt nur auf diesem Gerät.' }),
+        h('div', { className: 'op-row' },
+          h(O.Button, { type: 'submit', icon: 'settings' }, 'Speichern'),
+          h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { Auth.logout(); } }, 'Abmelden')),
+        saved[0] ? h(O.Status, { tone: 'ok' }, 'Gespeichert. Gilt ab der nächsten Anmeldung.') : null));
+  }
+
   function Settings() {
     return [
+      h(AccountSettings, { key: 'acc' }),
       h(NetworkSettings, { key: 'net' }),
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
@@ -274,16 +332,23 @@
   function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
   function Sensors() { return h(window.NDMonitor.Sensors); }
   function Control() { return h(window.NDControl.Control); }
-  function Management() { return h(window.NDGoals.Overview); }
+  /** Reiter oben auf allen Management-Seiten. */
+  function MgmtTabs(props) {
+    return h(O.Tabs, { items: [{ id: 'management', label: 'Ziele' }, { id: 'game', label: 'Spiel' }, { id: 'portal', label: 'Bürgerportal' }], value: props.value, onChange: go });
+  }
+  function Management() { return [h(MgmtTabs, { key: 'tabs', value: 'management' }), h(window.NDGoals.Overview, { key: 'p' })]; }
+  function Game() { return [h(MgmtTabs, { key: 'tabs', value: 'game' }), h(window.NDGame.Page, { key: 'p' })]; }
+  function Portal(props) { return [props.id ? null : h(MgmtTabs, { key: 'tabs', value: 'portal' }), h(window.NDPortal.Page, { key: 'p', section: props.section, id: props.id })]; }
   function Goal(props) { return h(window.NDGoals.Detail, { id: props.id }); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
   var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
-    management: Management, goal: Goal, news: News, chat: Chat, settings: Settings };
+    management: Management, goal: Goal, game: Game, portal: Portal, news: News, chat: Chat, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
   function App() {
-    var rt = React.useState(currentRoute()), page = rt[0].page, path = rt[0].path, routeId = rt[0].id;
+    var rt = React.useState(currentRoute()), page = rt[0].page, path = rt[0].path, routeId = rt[0].id, section = rt[0].section;
+    var auth = Auth.useAuth();
     var dr = React.useState(false), drawerOpen = dr[0];
     var desktop = useMedia('(min-width: 900px)');
     var bodyRef = React.useRef(null);
@@ -291,25 +356,28 @@
     var net = useNet();
     React.useEffect(function () { if (window.ND_VERSION.code > 0) window.NDUpdate.check(false); }, []);
     React.useEffect(function () { if (window.NDNet.mode() === 'auto') window.NDNet.detect(); }, []);
+    React.useEffect(function () { if (auth.unlocked && page === 'login') go('home'); }, [auth.unlocked, page]);
     React.useEffect(function () {
       function on() { rt[1](currentRoute()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
       window.addEventListener('hashchange', on);
       return function () { window.removeEventListener('hashchange', on); };
     }, []);
 
-    if (page === 'login') return h('div', { className: 'app op-compact' }, h(Login));
+    // Ohne Anmeldung (oder „Ohne Anmeldung weiter“) nur die Login-Seite; danach geht es zur angefragten Seite
+    if (!auth.unlocked || page === 'login') return h('div', { className: 'app op-compact' }, h(Login));
 
     var meta = PAGES[page];
     var isFiles = page === 'files' || page === 'file';
-    var root = page === 'files' ? path === '/' : meta.root;
-    var drawer = h(Drawer, { page: isFiles ? 'files' : page === 'goal' ? 'management' : page, onNavigate: go });
+    var root = page === 'files' ? path === '/' : page === 'portal' ? !routeId : meta.root;
+    var drawer = h(Drawer, { page: isFiles ? 'files' : page === 'goal' || page === 'game' || page === 'portal' ? 'management' : page, onNavigate: go });
     var showMenu = root && !desktop;
     var bar = h(O.AppBar, {
       onMenu: showMenu ? function () { dr[1](true); } : undefined,
-      onBack: !root ? (page === 'files' ? function () { location.hash = '#/files?p=' + encodeURIComponent(NAS.parent(path)); } : page === 'goal' ? function () { go('management'); } : back) : undefined,
+      onBack: !root ? (page === 'files' ? function () { location.hash = '#/files?p=' + encodeURIComponent(NAS.parent(path)); } : page === 'goal' ? function () { go('management'); }
+        : page === 'portal' ? function () { location.hash = '#/portal?s=' + (section || 'lage'); } : back) : undefined,
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
       title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : page === 'goal' ? window.NDGoals.title(routeId) : meta.title,
-      subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : meta.sub,
+      subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : page === 'portal' ? 'Bürgerportal · ' + window.NDPortal.title(section, routeId) : meta.sub,
       end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : IconBtn('alert', 'Meldungen')
     });
     var footer = h(O.BottomNav, { value: meta.nav, items: BOTTOM, onChange: function (id) { if (id === 'more') dr[1](true); else go(BOTTOM_TARGET[id]); } });
@@ -321,7 +389,7 @@
         h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner),
           // Seiten mit Verbindungen erst nach der Netzerkennung laden und bei einem Netzwechsel neu aufbauen
           net.mode === 'auto' && !net.detected && page !== 'settings' ? h('div', { className: 'hint', key: 'net' }, 'Prüfe Netzwerk …')
-            : h(RENDER[page], { key: net.profile, path: path, id: routeId }))),
+            : h(RENDER[page], { key: net.profile, path: path, id: routeId, section: section }))),
         footer),
       h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);

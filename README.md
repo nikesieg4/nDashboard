@@ -1,7 +1,18 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) das **Management** (eigene Ziele und Sparpläne) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News zeigt noch Beispieldaten, Sicherheit ist noch mit nichts verbunden, Chat ist ausgeschaltet.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News zeigt noch Beispieldaten, Sicherheit ist noch mit nichts verbunden, Chat ist ausgeschaltet.
+
+## Anmeldung
+
+Beim Start fragt die App nach **Benutzer** (Standard „Administrator“) und **Passwort**. Ein Login meldet bei zwei Systemen an:
+
+- **Bürgerportal** (ABIS-Konsole): das Portal-Konto, z. B. „Administrator“. Zugang wie bei der Konsole nur für Administrator, Level 5/6 und ABIS-Mitglieder.
+- **Disponenten-Simulator** (Codes-Admin): Präfix + dasselbe Passwort. Den Präfix trägst du einmal unter **Einstellungen → Konten** ein; er bleibt nur auf dem Gerät und steht nicht im Code.
+
+Ist das Passwort fürs Portal falsch, versucht die App das Spiel gar nicht erst (dort sperren 5 Fehlversuche den Login für 15 Minuten). Nach 3 Fehlversuchen wartet die App zusätzlich immer länger. Klappt nur eins der beiden Systeme, geht es trotzdem in die App; der andere Reiter unter Management zeigt dann ein Passwortfeld.
+
+Die Sitzungen liegen nur im Speicher: Bei jedem App-Start und nach **20 Minuten ohne Eingabe** fragt die App wieder nach dem Passwort. Ohne Internet geht es mit **Ohne Anmeldung weiter** in die App – Dateien, Sensoren und Steuerung laufen übers Heimnetz/VPN, nur die Admin-Reiter bleiben gesperrt.
 
 ## Dateien vom NAS
 
@@ -46,6 +57,20 @@ Auf der Seite **Management** legst du eigene Ziele an, z. B. „Server“, und f
 
 Die Ziele werden auf dem NAS in `/.ndashboard/ziele.json` gespeichert, damit Handy und PC dieselben sehen. Ohne NAS-Verbindung bleiben sie nur auf dem jeweiligen Gerät.
 
+### Spiel (Disponenten-Simulator)
+
+Unter **Management → Spiel** dieselben Funktionen wie [Disponenten-Simulator-Admin](https://github.com/nikesieg4/Disponenten-Simulator-Admin): Codes anlegen (Geld, Personal mit Ausbildung, Gebäude- und Erweiterungs-Gutscheine; Ablaufdatum, max. Spieler, nur neue Konten, nur Premium), bearbeiten, (de)aktivieren, löschen, sehen wer eingelöst hat; EP, RP und Premium-Tage schenken oder abziehen; Premium- und Discord-Liste. Alle Prüfungen macht der Server (`admin_*`-Funktionen in Supabase); die Spiel-Sitzung gilt 2 Stunden.
+
+### Bürgerportal (ABIS-Konsole)
+
+Unter **Management → Bürgerportal** die [ABIS-Sicherheitskonsole](https://github.com/nikesieg4/dPUbtsXv3y) mit derselben Datenbank und denselben Rechten (RLS, Level, Zuordnungen, Einzelrechte). Bisher übernommen:
+
+- **Lagezentrum** – Ledger-Integrität, Transaktionen und Sicherheitsereignisse der letzten 24 h, DB-Antwortzeit (alle 10 s), Alarme und Alarmstufe, Ereignisprotokoll, offene Vorgänge
+- **Register** – Bürger suchen und filtern, Stammdaten, Zuordnungen, Level, Konto sperren, Bürger anlegen (mit Startpasswort) und löschen
+- **Anträge** – Bewerbungen weiterschalten, bewilligen, ablehnen, schließen; Staatsbürgerschaftsanträge annehmen/ablehnen
+
+Die übrigen Bereiche der Konsole (Protokoll, Datenbank, Transaktionen, Bank, Anmeldedaten, Antragsarten, Termine, Justiz, Kommunikation, Zuordnungen, Berechtigungen, Auswertungen, System) folgen schrittweise.
+
 ## Zuhause und unterwegs (WLAN / VPN)
 
 Für den Zugriff von unterwegs empfiehlt sich [Tailscale](https://tailscale.com) auf PC, NAS und Handy (kein Port im Router freigeben!). In den Einstellungen hat jede Verbindung dann zwei Adressen: **im WLAN** (`192.168.…`) und **über VPN** (Tailscale, `100.…`). Oben unter **Netzwerk** wählst du:
@@ -89,7 +114,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 
 | Seite | Hash | Vorlage im Template |
 |---|---|---|
-| Anmeldung | `#/login` | LoginScreen |
+| Anmeldung (Bürgerportal + Spiel) | `#/login` | LoginScreen |
 | Start / Terminal | `#/home` | TerminalScreen |
 | Steuereinheit (PC & NAS) | `#/control` | ControlUnitScreen |
 | Dateien (NAS) | `#/files?p=/ordner` | FileManagerScreen |
@@ -98,9 +123,11 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Sicherheit (nicht verbunden) | `#/security` | SecurityScreen |
 | Management (Ziele) | `#/management` | ManagementScreen |
 | Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
+| Management → Spiel (Codes-Admin) | `#/game` | ManagementScreen |
+| Management → Bürgerportal (ABIS) | `#/portal?s=lage` · `#/portal?s=register&id=…` · `#/portal?s=antraege` | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
 | Chat (ausgeschaltet) | `#/chat` | ChatScreen |
-| Einstellungen (NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
+| Einstellungen (Konten, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
 Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Steuerung, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
@@ -117,10 +144,15 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/monitor.js Seite Sensoren
   js/goals.js   Seiten Management (Ziele) und Ziel
   js/control.js Seite Steuereinheit
+  js/auth.js    Anmeldung (Bürgerportal + Spiel), automatische Abmeldung
+  js/game.js    Management → Spiel (Codes-Admin des Disponenten-Simulators)
+  js/portal.js  Management → Bürgerportal (ABIS-Konsole)
+  js/portal-model.js Datenmodell und Rechte des Bürgerportals (aus dPUbtsXv3y)
+  js/ui.js      Auswahlliste, Chips, Fenster für die Admin-Bereiche
   js/update.js  Prüft GitHub Releases auf neue Versionen
   js/version.js Versionsnummer (setzt GitHub Actions beim Bauen)
   css/          Design-Tokens, Komponenten-CSS, App-Layout, lokale Schriften
-  vendor/       React 18.3.1 (offline eingebunden)
+  vendor/       React 18.3.1 und supabase-js 2.117.3 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
 tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll) + Anleitungen
