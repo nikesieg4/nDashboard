@@ -252,5 +252,5 @@
     return [toolbar, h('div', { key: 'c', className: 'viewer' }, content)];
   }
 
-  window.NDFiles = { Browser: Browser, Viewer: Viewer, Toast: Toast, toast: toast };
+  window.NDFiles = { Browser: Browser, Viewer: Viewer, Toast: Toast, toast: toast, Dialog: Dialog };
 })();

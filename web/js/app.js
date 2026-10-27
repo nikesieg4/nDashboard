@@ -1,6 +1,6 @@
 /* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
- * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js)
- * und die Einstellungen dazu.
+ * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
+ * Management (eigene Ziele, goals.js) und die Einstellungen dazu.
  * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
@@ -18,7 +18,8 @@
     file:         { title: 'Datei', nav: 'files' },
     sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sec', root: true },
     security:     { title: 'Sicherheit', nav: 'sec', root: true },
-    management:   { title: 'Management', sub: 'Q4 · 2026', nav: 'more', root: true },
+    management:   { title: 'Management', sub: 'Ziele & Sparpläne', nav: 'more', root: true },
+    goal:         { title: 'Ziel', nav: 'more' },
     news:         { title: 'Bulletin', nav: 'more', root: true },
     chat:         { title: 'Chat', nav: 'chat', root: true },
     conversation: { title: '# Leitstelle', sub: 'Verschlüsselt · 4 online', nav: 'chat' },
@@ -40,7 +41,7 @@
     var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
     var id = q < 0 ? raw : raw.slice(0, q);
     var params = new URLSearchParams(q < 0 ? '' : raw.slice(q + 1));
-    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, '') };
+    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, ''), id: params.get('id') || '' };
   }
   function go(id) { location.hash = '#/' + id; }
   function back() { if (history.length > 1) history.back(); else go('home'); }
@@ -144,26 +145,6 @@
       h(O.Panel, { key: 'l', variant: 'outlined', mutedCorners: true, title: 'Ereignisprotokoll' },
         h(O.EventLog, { rail: true, items: [{ text: 'Alle Systeme betriebsbereit', time: '01:26' }, { text: 'Zugang an Tor 16 verweigert', time: '01:25', tone: 'warn' }] })),
       h(O.Button, { key: 'b', variant: 'danger', icon: 'lock' }, 'Lockdown einleiten')
-    ];
-  }
-
-  function Management() {
-    return [
-      h('div', { key: 'g', className: 'g2 tiles-desktop' },
-        h(O.StatTile, { label: 'Umsatz', value: '1.28', unit: 'M€', delta: '▲ 8.4%', deltaTone: 'ok' }),
-        h(O.StatTile, { label: 'Mitarbeitende', value: '64', delta: '+3', deltaTone: 'neutral' }),
-        h(O.StatTile, { label: 'Offene Aufgaben', value: '137' }),
-        h(O.StatTile, { label: 'Verfügbarkeit', value: '99.98%' })),
-      h(O.Panel, { key: 'c', variant: 'framed', corners: false, title: 'Umsatz · wöchentlich', icon: 'chart' },
-        h(O.AreaChart, { data: [62, 70, 68, 75, 80, 78, 88, 92, 90, 97, 104, 110], min: 40, max: 120, height: 120, format: function (v) { return v + 'k'; } })),
-      h(O.Panel, { key: 'p', variant: 'outlined', mutedCorners: true, title: 'Projekte' },
-        h('div', { className: 'op-col', style: { gap: 14 } },
-          h(O.ProgressBar, { label: 'Standorterweiterung', value: .68 }),
-          h(O.ProgressBar, { label: 'App-Release 2.0', value: .9 }),
-          h(O.ProgressBar, { label: 'Audit', value: .32, tone: 'warn', valueText: '32% · verspätet' }))),
-      h('div', { key: 'l' },
-        h(O.ListItem, { icon: 'user', title: 'A. Keller', subtitle: 'Betrieb · 12 Aufgaben', end: h(O.Status, { tone: 'ok' }, 'Verfügbar') }),
-        h(O.ListItem, { icon: 'user', title: 'M. Novak', subtitle: 'Technik · 21 Aufgaben', end: h(O.Status, { tone: 'warn' }, 'Überlastet') }))
     ];
   }
 
@@ -300,14 +281,16 @@
 
   function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
   function Sensors() { return h(window.NDMonitor.Sensors); }
+  function Management() { return h(window.NDGoals.Overview); }
+  function Goal(props) { return h(window.NDGoals.Detail, { id: props.id }); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
   var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
-    management: Management, news: News, chat: Chat, conversation: Conversation, settings: Settings };
+    management: Management, goal: Goal, news: News, chat: Chat, conversation: Conversation, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
   function App() {
-    var rt = React.useState(currentRoute()), page = rt[0].page, path = rt[0].path;
+    var rt = React.useState(currentRoute()), page = rt[0].page, path = rt[0].path, routeId = rt[0].id;
     var dr = React.useState(false), drawerOpen = dr[0];
     var desktop = useMedia('(min-width: 900px)');
     var bodyRef = React.useRef(null);
@@ -324,13 +307,13 @@
     var meta = PAGES[page];
     var isFiles = page === 'files' || page === 'file';
     var root = page === 'files' ? path === '/' : meta.root;
-    var drawer = h(Drawer, { page: isFiles ? 'files' : page, onNavigate: go });
+    var drawer = h(Drawer, { page: isFiles ? 'files' : page === 'goal' ? 'management' : page, onNavigate: go });
     var showMenu = root && !desktop;
     var bar = h(O.AppBar, {
       onMenu: showMenu ? function () { dr[1](true); } : undefined,
-      onBack: !root ? (page === 'files' ? function () { location.hash = '#/files?p=' + encodeURIComponent(NAS.parent(path)); } : back) : undefined,
+      onBack: !root ? (page === 'files' ? function () { location.hash = '#/files?p=' + encodeURIComponent(NAS.parent(path)); } : page === 'goal' ? function () { go('management'); } : back) : undefined,
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
-      title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : meta.title,
+      title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : page === 'goal' ? window.NDGoals.title(routeId) : meta.title,
       subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : meta.sub,
       end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : page === 'conversation' ? IconBtn('more', 'Mehr') : page === 'control' ? IconBtn('close', 'Schließen', back) : IconBtn('alert', 'Meldungen')
     });
@@ -342,7 +325,7 @@
       desktop ? drawer : null,
       h('div', { className: 'app-main' },
         bar,
-        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner), h(RENDER[page], { path: path }))),
+        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner), h(RENDER[page], { path: path, id: routeId }))),
         footer),
       h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);
