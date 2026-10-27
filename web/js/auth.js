@@ -1,8 +1,8 @@
 /* nDashboard — Anmeldung für die Admin-Bereiche unter Management.
  * Ein Login meldet bei zwei Systemen an:
  *  - Bürgerportal (ABIS-Konsole): Supabase-Konto, z. B. „Administrator“ + Passwort
- *  - Disponenten-Simulator (Codes-Admin): admin_login mit Präfix + demselben Passwort
- *    (der Präfix steht nur auf dem Gerät, Einstellungen → Konten)
+ *  - Disponenten-Simulator (Codes-Admin): admin_login mit dem eigenen Spiel-Passwort, das nur auf dem
+ *    Gerät gespeichert ist (Einstellungen → Konten) und erst nach erfolgreichem Portal-Login benutzt wird
  * Sitzungen liegen nur im Speicher: Beim App-Neustart und nach 20 Minuten ohne Eingabe
  * fragt die App wieder nach dem Passwort. Ohne Internet geht es mit „Ohne Anmeldung weiter“
  * in die App – Dateien, Sensoren und Steuerung brauchen keinen Login. */
@@ -32,7 +32,9 @@
   function settings() {
     var s = null;
     try { s = JSON.parse(localStorage.getItem(SETTINGS) || 'null'); } catch (e) { /* leer */ }
-    return Object.assign({ user: 'Administrator', gamePrefix: '' }, s || {});
+    s = Object.assign({ user: 'Administrator', gamePass: '' }, s || {});
+    delete s.gamePrefix; // alte Version: nur Präfix gespeichert
+    return s;
   }
   function saveSettings(patch) {
     try { localStorage.setItem(SETTINGS, JSON.stringify(Object.assign(settings(), patch))); } catch (e) { /* egal */ }
@@ -91,9 +93,8 @@
       }, function () { throw Object.assign(new Error('Spiel-Server nicht erreichbar.'), { offline: true }); });
   }
   function gameLogin(pass) {
-    var prefix = settings().gamePrefix;
-    if (!prefix) return Promise.resolve({ ok: false, reason: 'Spiel: Passwort-Präfix fehlt (Einstellungen → Konten).' });
-    return gameFetch('admin_login', { p_password: prefix + pass }).then(function (r) {
+    if (!pass) return Promise.resolve({ ok: false, reason: 'Spiel: Passwort fehlt (Einstellungen → Konten).' });
+    return gameFetch('admin_login', { p_password: pass }).then(function (r) {
       if (!r || r.error) return { ok: false, reason: 'Spiel: ' + ((r && r.error) || 'Anmeldung fehlgeschlagen') };
       return { ok: true, token: r.token, expires: r.expires_at };
     }, function (e) { return { ok: false, offline: !!e.offline, reason: e.offline ? e.message : 'Spiel: ' + e.message }; });
@@ -114,26 +115,32 @@
   function applyPortal(r) { set({ portal: r.ok ? r.profile : null, portalError: r.ok ? null : r.reason }); }
   function applyGame(r) { set({ game: r.ok ? { token: r.token, expires: r.expires } : null, gameError: r.ok ? null : r.reason }); }
 
-  /** Bei beiden Systemen anmelden. Ist das Passwort fürs Portal falsch, wird das Spiel gar nicht erst
-   *  versucht – dort sperren schon 5 Fehlversuche den Login für 15 Minuten. */
+  /** Mit dem Portal-Konto anmelden. Erst wenn das klappt, meldet die App mit dem gespeicherten
+   *  Spiel-Passwort auch beim Spiel an – sonst könnte jeder mit dem Gerät in den Codes-Admin. */
   function login(user, pass) {
     user = String(user || '').trim();
     return portalLogin(user, pass).then(function (p) {
-      var g = p.wrong ? Promise.resolve({ ok: false, reason: 'Spiel: nicht versucht (Passwort falsch).' }) : gameLogin(pass);
+      var stored = settings().gamePass;
+      var g = !p.ok ? Promise.resolve({ ok: false, reason: 'Spiel: nicht angemeldet (erst nach Portal-Login).' })
+        : stored ? gameLogin(stored) : Promise.resolve({ ok: false, reason: 'Spiel: Passwort unter Einstellungen → Konten eintragen.' });
       return g.then(function (gr) {
-        if (p.ok || gr.ok) {
+        if (p.ok) {
           saveSettings({ user: user });
           applyPortal(p); applyGame(gr);
           set({ unlocked: true, user: user, notice: null });
           touch();
         }
-        return { ok: p.ok || gr.ok, portal: p, game: gr, offline: !!(p.offline && (gr.offline || !settings().gamePrefix)) };
+        return { ok: p.ok, portal: p, game: gr, offline: !!p.offline };
       });
     });
   }
-  /** Nur ein System neu anmelden (z. B. nach Ablauf der Spiel-Sitzung). */
+  /** Nur ein System neu anmelden (z. B. nach Ablauf der Spiel-Sitzung). Ohne eingegebenes Passwort nimmt
+   *  das Spiel das gespeicherte – aber nur, solange das Portal angemeldet ist. */
   function loginPortal(pass) { return portalLogin(state.user || settings().user, pass).then(function (r) { applyPortal(r); return r; }); }
-  function loginGame(pass) { return gameLogin(pass).then(function (r) { applyGame(r); return r; }); }
+  function loginGame(pass) {
+    if (!pass && state.portal) pass = settings().gamePass;
+    return gameLogin(pass).then(function (r) { applyGame(r); return r; });
+  }
 
   function skip() { set({ unlocked: true, portal: null, game: null, portalError: 'Ohne Anmeldung gestartet.', gameError: 'Ohne Anmeldung gestartet.', notice: null }); touch(); }
 
@@ -174,7 +181,7 @@
   function SignIn(props) {
     var O = window.Ops, h = React.createElement;
     var pass = React.useState(''), busy = React.useState(false), err = React.useState(null);
-    var game = props.system === 'game', a = useAuth();
+    var game = props.system === 'game', a = useAuth(), useStored = game && a.portal && !!settings().gamePass;
     function submit(e) {
       e.preventDefault();
       busy[1](true); err[1](null);
@@ -185,9 +192,9 @@
       h('p', { style: { margin: '8px 0 12px', color: 'var(--ink-muted)' } }, (game ? a.gameError : a.portalError) || 'Bitte anmelden.'),
       h('form', { className: 'op-col', style: { gap: 12 }, onSubmit: submit },
         game ? null : h(O.TextField, { label: 'Benutzer', value: a.user || settings().user, readOnly: true, hint: 'Ändern unter Einstellungen → Konten oder über Abmelden.' }),
-        h(O.TextField, { label: 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password',
-          hint: game ? 'Dein normales Passwort – der Präfix aus den Einstellungen wird automatisch davorgesetzt.' : null }),
-        h('div', { className: 'op-row' }, h(O.Button, { type: 'submit', icon: 'lock', disabled: busy[0] || !pass[0] }, busy[0] ? 'Prüfe …' : 'Anmelden')),
+        h(O.TextField, { label: game ? 'Spiel-Passwort' : 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password',
+          placeholder: useStored ? 'leer = gespeichertes Passwort' : null, hint: game ? 'Das Passwort des Codes-Admins (Disponenten-Simulator).' : null }),
+        h('div', { className: 'op-row' }, h(O.Button, { type: 'submit', icon: 'lock', disabled: busy[0] || (!pass[0] && !useStored) }, busy[0] ? 'Prüfe …' : 'Anmelden')),
         err[0] ? h(O.Status, { tone: 'danger' }, err[0]) : null));
   }
 
