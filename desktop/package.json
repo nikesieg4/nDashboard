@@ -1,0 +1,33 @@
+{
+  "name": "ndashboard",
+  "productName": "nDashboard",
+  "version": "0.0.0",
+  "description": "nDashboard für Windows und macOS",
+  "author": "nikesieg4",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.10"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "de.nikesieg4.nDashboard",
+    "productName": "nDashboard",
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [{ "from": "../web", "to": "web" }],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "publish": [{ "provider": "github", "owner": "nikesieg4", "repo": "nDashboard" }],
+    "win": { "target": "nsis" },
+    "nsis": { "artifactName": "nDashboard-Setup.exe", "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
+    "mac": { "target": "dmg", "category": "public.app-category.utilities", "identity": "-", "hardenedRuntime": false },
+    "dmg": { "artifactName": "nDashboard.dmg" },
+    "linux": { "target": "dir" }
+  }
+}

@@ -1,6 +1,6 @@
-# Baut bei jedem Push die Android-APK und das Linux-Flatpak (Ergebnisse im Lauf unter "Artifacts").
+# Baut bei jedem Push die Android-APK, das Linux-Flatpak und die Windows-/macOS-App (Ergebnisse im Lauf unter "Artifacts").
 # Auf main (Push oder manuell über "Run workflow") wird zusätzlich veröffentlicht:
-#   - GitHub Release v0.3.<Laufnummer> mit APK und Flatpak (die Android-App prüft darauf auf Updates)
+#   - GitHub Release v0.3.<Laufnummer> mit APK, Flatpak, Windows-Installer und macOS-dmg (die Apps prüfen darauf auf Updates)
 #   - Flatpak-Paketquelle auf GitHub Pages (Linux aktualisiert sich darüber per Softwareverwaltung/`flatpak update`)
 # Benötigte Secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, FLATPAK_GPG_PRIVATE_KEY
 name: Build
@@ -107,10 +107,54 @@ jobs:
           name: flatpak-repo
           path: flatpak-repo.tar
 
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win nsis --x64
+            artifact: nDashboard-Windows
+            files: |
+              desktop/dist/nDashboard-Setup.exe
+              desktop/dist/nDashboard-Setup.exe.blockmap
+              desktop/dist/latest.yml
+          - os: macos-latest
+            target: --mac dmg --universal
+            artifact: nDashboard-Mac
+            files: desktop/dist/nDashboard.dmg
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Version setzen
+        run: |
+          echo "window.ND_VERSION = { code: $VERSION_CODE, name: '$VERSION' };" > web/js/version.js
+          cd desktop && npm version "$VERSION" --no-git-tag-version --allow-same-version
+      - name: App bauen
+        working-directory: desktop
+        env:
+          # nicht signiert: Windows ohne Zertifikat, macOS nur ad-hoc (kein Apple-Entwicklerkonto)
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm ci
+          npx electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+
   publish:
     # auch bei manuellem Start ("Run workflow") auf main
     if: github.ref == 'refs/heads/main'
-    needs: [apk, flatpak]
+    needs: [apk, flatpak, desktop]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -134,6 +178,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           FILES="artifacts/nDashboard-APK/nDashboard.apk artifacts/nDashboard-Flatpak/nDashboard.flatpak"
+          # latest.yml + .blockmap braucht das Windows-Update (electron-updater)
+          FILES="$FILES artifacts/nDashboard-Windows/nDashboard-Setup.exe artifacts/nDashboard-Windows/nDashboard-Setup.exe.blockmap artifacts/nDashboard-Windows/latest.yml"
+          FILES="$FILES artifacts/nDashboard-Mac/nDashboard.dmg"
           if gh release view "v$VERSION" > /dev/null 2>&1; then
             # erneuter Versuch desselben Laufs: Dateien des vorhandenen Releases ersetzen
             gh release upload "v$VERSION" $FILES --clobber
@@ -149,7 +196,7 @@ jobs:
           URL=https://nikesieg4.github.io/nDashboard
           printf '[Flatpak Repo]\nTitle=nDashboard\nUrl=%s/repo/\nHomepage=https://github.com/nikesieg4/nDashboard\nGPGKey=%s\n' "$URL" "$KEY" > site/ndashboard.flatpakrepo
           printf '[Flatpak Ref]\nName=de.nikesieg4.nDashboard\nBranch=stable\nTitle=nDashboard\nUrl=%s/repo/\nSuggestRemoteName=ndashboard\nRuntimeRepo=https://dl.flathub.org/repo/flathub.flatpakrepo\nIsRuntime=false\nGPGKey=%s\n' "$URL" "$KEY" > site/ndashboard.flatpakref
-          printf '<!doctype html><meta charset="utf-8"><title>nDashboard</title><h1>nDashboard %s</h1><p>Linux: <code>flatpak install --user %s/ndashboard.flatpakref</code></p><p>Android: <a href="https://github.com/nikesieg4/nDashboard/releases/latest">neueste APK</a></p>\n' "$VERSION" "$URL" > site/index.html
+          printf '<!doctype html><meta charset="utf-8"><title>nDashboard</title><h1>nDashboard %s</h1><p>Linux: <code>flatpak install --user %s/ndashboard.flatpakref</code></p><p>Android, Windows, macOS: <a href="https://github.com/nikesieg4/nDashboard/releases/latest">neuestes Release</a> (nDashboard.apk, nDashboard-Setup.exe, nDashboard.dmg)</p>\n' "$VERSION" "$URL" > site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
