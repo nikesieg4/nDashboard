@@ -13,7 +13,7 @@
   var PAGES = {
     login:        { title: 'Anmeldung', root: true },
     home:         { title: 'Start', nav: 'home', root: true },
-    control:      { title: 'Steuereinheit', sub: 'PC & NAS', nav: 'more', root: true },
+    control:      { title: 'Steuereinheit', sub: 'PC & NAS', nav: 'control', root: true },
     files:        { title: 'Dateien', nav: 'files', root: true },
     file:         { title: 'Datei', nav: 'files' },
     sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sensors', root: true },
@@ -21,21 +21,20 @@
     management:   { title: 'Management', sub: 'Ziele & Sparpläne', nav: 'more', root: true },
     goal:         { title: 'Ziel', nav: 'more' },
     news:         { title: 'Bulletin', nav: 'more', root: true },
-    chat:         { title: 'Chat', nav: 'chat', root: true },
-    conversation: { title: '# Leitstelle', sub: 'Verschlüsselt · 4 online', nav: 'chat' },
+    chat:         { title: 'Chat', sub: 'Ausgeschaltet', nav: 'more', root: true },
     settings:     { title: 'Einstellungen', nav: 'more' }
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
     ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit'],
-    ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', '5']
+    ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat']
   ];
   var BOTTOM = [
     { id: 'home', label: 'Start', icon: 'home' }, { id: 'files', label: 'Dateien', icon: 'folder' },
-    { id: 'sensors', label: 'Sensoren', icon: 'sensor' }, { id: 'chat', label: 'Chat', icon: 'chat', badge: '5' },
+    { id: 'sensors', label: 'Sensoren', icon: 'sensor' }, { id: 'control', label: 'Steuerung', icon: 'power' },
     { id: 'more', label: 'Mehr', icon: 'menu' }
   ];
-  var BOTTOM_TARGET = { home: 'home', files: 'files', sensors: 'sensors', chat: 'chat' };
+  var BOTTOM_TARGET = { home: 'home', files: 'files', sensors: 'sensors', control: 'control' };
 
   function currentRoute() {
     var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
@@ -135,24 +134,9 @@
   }
 
   function Chat() {
-    return [
-      h(O.TextField, { key: 's', placeholder: 'Suchen…', 'aria-label': 'Kanäle suchen' }),
-      h('div', { key: 'l' }, [['Leitstelle', 'Verstanden. Warte auf Freigabe.', '01:25', '2'], ['Team B', 'Position wird gehalten.', '01:20', ''], ['Sicherheitsdienst', 'Bericht Tor 16 angehängt', '00:58', '3'], ['Technik', 'Generatortest bestanden', 'Gestern', ''], ['A. Keller', 'Bis zur Besprechung', 'Gestern', '']].map(function (c, i) {
-        return h(O.ListItem, { key: c[0], icon: 'chat', title: c[0], subtitle: c[1], selected: i === 0, onClick: function () { go('conversation'); },
-          meta: h('span', { style: { fontSize: 11, color: 'var(--ink-faint)' } }, c[2]), end: c[3] ? h(O.Badge, { solid: true }, c[3]) : null });
-      }))
-    ];
-  }
-
-  function Conversation() {
-    var msgs = [
-      { a: 'Leitstelle', t: '01:24', x: 'Team B, Position an Tor 16 bestätigen.' },
-      { me: 1, t: '01:25', x: 'Bestätigt. Wir halten am Nordkorridor.' },
-      { a: 'Leitstelle', t: '01:25', x: 'Verstanden. Warten auf Freigabe.' },
-      { a: 'J. Ortiz', t: '01:26', x: 'Kamera 07 zeigt Bewegung, sende Clip.' }];
-    return h('div', { className: 'op-col', style: { gap: 12, flex: 1, justifyContent: 'flex-end' } }, msgs.map(function (m, i) {
-      return h(O.ChatMessage, { key: i, from: m.me ? 'me' : 'them', author: m.a, time: m.t }, m.x);
-    }));
+    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Chat', icon: 'chat' },
+      h(O.Status, { tone: 'neutral' }, 'Ausgeschaltet'),
+      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, 'Der Chat ist in dieser Version ausgeschaltet.'));
   }
 
   /** Netzwerk-Profil abonnieren (siehe network.js). */
@@ -295,7 +279,7 @@
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
   var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
-    management: Management, goal: Goal, news: News, chat: Chat, conversation: Conversation, settings: Settings };
+    management: Management, goal: Goal, news: News, chat: Chat, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
   function App() {
@@ -326,11 +310,9 @@
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
       title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : page === 'goal' ? window.NDGoals.title(routeId) : meta.title,
       subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : meta.sub,
-      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : page === 'conversation' ? IconBtn('more', 'Mehr') : IconBtn('alert', 'Meldungen')
+      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : IconBtn('alert', 'Meldungen')
     });
-    var footer = page === 'conversation'
-      ? h('div', { className: 'app-footer' }, h(O.CommandInput, { showPrompt: false, placeholder: 'Nachricht schreiben…', label: 'Nachricht', onSubmit: noop }))
-      : h(O.BottomNav, { value: meta.nav, items: BOTTOM, onChange: function (id) { if (id === 'more') dr[1](true); else go(BOTTOM_TARGET[id]); } });
+    var footer = h(O.BottomNav, { value: meta.nav, items: BOTTOM, onChange: function (id) { if (id === 'more') dr[1](true); else go(BOTTOM_TARGET[id]); } });
 
     return h('div', { className: 'app' + (desktop ? ' is-desktop' : ' op-compact') },
       desktop ? drawer : null,
