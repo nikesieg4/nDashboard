@@ -1,5 +1,5 @@
 # Baut bei jedem Push die Android-APK und das Linux-Flatpak (Ergebnisse im Lauf unter "Artifacts").
-# Auf main wird zusätzlich veröffentlicht:
+# Auf main (Push oder manuell über "Run workflow") wird zusätzlich veröffentlicht:
 #   - GitHub Release v0.3.<Laufnummer> mit APK und Flatpak (die Android-App prüft darauf auf Updates)
 #   - Flatpak-Paketquelle auf GitHub Pages (Linux aktualisiert sich darüber per Softwareverwaltung/`flatpak update`)
 # Benötigte Secrets: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, FLATPAK_GPG_PRIVATE_KEY
@@ -102,7 +102,8 @@ jobs:
           path: flatpak-repo.tar
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # auch bei manuellem Start ("Run workflow") auf main
+    if: github.ref == 'refs/heads/main'
     needs: [apk, flatpak]
     runs-on: ubuntu-latest
     permissions:
@@ -126,8 +127,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v$VERSION" artifacts/nDashboard-APK/nDashboard.apk artifacts/nDashboard-Flatpak/nDashboard.flatpak \
-            --target "$GITHUB_SHA" --title "nDashboard $VERSION" --notes "$(git log -1 --format=%B "$GITHUB_SHA" | sed '/^Co-Authored-By:/d;/^Claude-Session:/d')"
+          FILES="artifacts/nDashboard-APK/nDashboard.apk artifacts/nDashboard-Flatpak/nDashboard.flatpak"
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            # erneuter Versuch desselben Laufs: Dateien des vorhandenen Releases ersetzen
+            gh release upload "v$VERSION" $FILES --clobber
+          else
+            gh release create "v$VERSION" $FILES --target "$GITHUB_SHA" --title "nDashboard $VERSION" \
+              --notes "$(git log -1 --format=%B "$GITHUB_SHA" | sed '/^Co-Authored-By:/d;/^Claude-Session:/d')"
+          fi
       - name: Flatpak-Paketquelle zusammenstellen
         run: |
           mkdir site
