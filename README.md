@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, und die **Sensoren** (Protokoll und Hardware deines PCs); die übrigen Seiten zeigen noch Beispieldaten. Kameras sind als „Nicht verfügbar“ markiert.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) und das **Management** (eigene Ziele und Sparpläne); die übrigen Seiten zeigen noch Beispieldaten. Kameras sind als „Nicht verfügbar“ markiert.
 
 ## Dateien vom NAS
 
@@ -35,6 +35,12 @@ Die Seite **Sensoren** zeigt, was auf deinem Linux-PC passiert. Dafür läuft do
 - Warnungen bei hoher Temperatur oder vollem Speicher
 
 Einrichtung Schritt für Schritt: [PC-Agent einrichten](tools/PC-AGENT.md). In der App unter **Einstellungen → PC-Agent** Adresse (Standard-Port 5006), Benutzer und Passwort eintragen.
+
+## Management: Ziele und Sparpläne
+
+Auf der Seite **Management** legst du eigene Ziele an, z. B. „Server“, und fügst die Teile mit Preis hinzu (16 GB RAM für 250 €, CPU für 20 € → 270 €). Unter **Gespart** trägst du ein, was du schon zurückgelegt hast. Die App zeigt dann den Fortschritt (10 / 270 € = 3 %) und was noch fehlt (260 €). Teile, die du schon gekauft hast, hakst du ab – sie zählen dann als gedeckt. Mit einem Zieldatum rechnet die App aus, wie viel du pro Woche sparen musst.
+
+Die Ziele werden auf dem NAS in `/.ndashboard/ziele.json` gespeichert, damit Handy und PC dieselben sehen. Ohne NAS-Verbindung bleiben sie nur auf dem jeweiligen Gerät.
 
 ## Installieren und Updates
 
@@ -77,7 +83,8 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Datei (Editor/Vorschau) | `#/file?p=/ordner/datei.txt` | FileManagerScreen |
 | Sensoren (PC-Monitor) | `#/sensors` | MotionSensorScreen |
 | Sicherheit | `#/security` | SecurityScreen |
-| Management | `#/management` | ManagementScreen |
+| Management (Ziele) | `#/management` | ManagementScreen |
+| Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
 | Chat-Kanäle | `#/chat` | ChatScreen |
 | Unterhaltung | `#/conversation` | ChatScreen |
@@ -95,6 +102,7 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/files.js   Seiten Dateien und Datei (Editor/Vorschau)
   js/services.js Verbindung zum PC-Agenten
   js/monitor.js Seite Sensoren
+  js/goals.js   Seiten Management (Ziele) und Ziel
   js/update.js  Prüft GitHub Releases auf neue Versionen
   js/version.js Versionsnummer (setzt GitHub Actions beim Bauen)
   css/          Design-Tokens, Komponenten-CSS, App-Layout, lokale Schriften
