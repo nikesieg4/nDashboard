@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind bisher die **Dateien auf deinem NAS** (siehe unten); die übrigen Seiten zeigen noch Beispieldaten. Kameras und Banking sind als „Nicht verfügbar“ markiert.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, und die **Sensoren** (Protokoll und Hardware deines PCs); die übrigen Seiten zeigen noch Beispieldaten. Kameras sind als „Nicht verfügbar“ markiert.
 
 ## Dateien vom NAS
 
@@ -23,6 +23,18 @@ In der App unter **Einstellungen → NAS-Verbindung** Adresse, Benutzer und Pass
 Ausführliche Anleitungen: [Rechner als NAS](tools/NETZWERKSPEICHER.md) · [Raspberry Pi als NAS](tools/RASPBERRYPI.md).
 
 Die Zugangsdaten bleiben nur auf dem jeweiligen Gerät. Die Verbindung ist unverschlüsselt (HTTP) und nur fürs Heimnetz gedacht – den Port nie im Router freigeben.
+
+## Sensoren: PC-Protokoll
+
+Die Seite **Sensoren** zeigt, was auf deinem Linux-PC passiert. Dafür läuft dort [`tools/pc-agent.py`](tools/pc-agent.py) als Hintergrunddienst (nur Python 3). Er protokolliert:
+
+- Hardware: CPU-Last und -Temperatur, alle Temperatur- und Lüftersensoren, RAM, Datenträger, Netzwerk, Akku (Verlauf 7 Tage, Diagramm 1 h / 24 h / 7 Tage)
+- An- und Abmeldungen, SSH-Anmeldungen, Herunterfahren und Neustart
+- Abstürze (Coredumps) und Abbrüche wegen Speichermangel
+- Dateien: neu, geändert, gelöscht, verschoben in Schreibtisch, Dokumente, Downloads, Bilder (oder eigenen Ordnern)
+- Warnungen bei hoher Temperatur oder vollem Speicher
+
+Einrichtung Schritt für Schritt: [PC-Agent einrichten](tools/PC-AGENT.md). In der App unter **Einstellungen → PC-Agent** Adresse (Standard-Port 5006), Benutzer und Passwort eintragen.
 
 ## Installieren und Updates
 
@@ -63,14 +75,13 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Steuereinheit | `#/control` | ControlUnitScreen |
 | Dateien (NAS) | `#/files?p=/ordner` | FileManagerScreen |
 | Datei (Editor/Vorschau) | `#/file?p=/ordner/datei.txt` | FileManagerScreen |
-| Bewegungsmelder | `#/sensors` | MotionSensorScreen |
+| Sensoren (PC-Monitor) | `#/sensors` | MotionSensorScreen |
 | Sicherheit | `#/security` | SecurityScreen |
-| Konten (Banking) | `#/banking` | BankingScreen |
 | Management | `#/management` | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
 | Chat-Kanäle | `#/chat` | ChatScreen |
 | Unterhaltung | `#/conversation` | ChatScreen |
-| Einstellungen (NAS-Verbindung) | `#/settings` | Navigations-Drawer |
+| Einstellungen (NAS, PC-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
 Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
@@ -82,13 +93,15 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/app.js     Alle Seiten + Navigation
   js/nas.js     WebDAV-Client fürs NAS
   js/files.js   Seiten Dateien und Datei (Editor/Vorschau)
+  js/services.js Verbindung zum PC-Agenten
+  js/monitor.js Seite Sensoren
   js/update.js  Prüft GitHub Releases auf neue Versionen
   js/version.js Versionsnummer (setzt GitHub Actions beim Bauen)
   css/          Design-Tokens, Komponenten-CSS, App-Layout, lokale Schriften
   vendor/       React 18.3.1 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
-tools/      nas-server.py (WebDAV-Server fürs NAS) + Anleitungen
+tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll) + Anleitungen
 ```
 
 ## Selbst bauen

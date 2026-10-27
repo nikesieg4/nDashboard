@@ -60,3 +60,8 @@ body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .modal .op-field input { background: var(--bg-200); color: var(--ink); border: var(--hairline) solid var(--line-strong); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); font: inherit; }
 .modal .op-field input:focus { outline: none; border-color: var(--signal); }
 .toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40; max-width: calc(100% - 32px); background: var(--bg-200); border: var(--hairline) solid var(--line-strong); padding: var(--space-2) var(--space-4); box-shadow: var(--overlay); font-size: 13px; }
+
+/* Sensoren-Protokoll */
+.event-list { display: flex; flex-direction: column; margin-top: var(--space-2); }
+.event-list .op-li-sub { white-space: normal; overflow-wrap: anywhere; }
+.event-time { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
