@@ -10,6 +10,7 @@
     };
   }
   function ServiceError(status, message) { this.status = status; this.message = message; }
+  var TIMEOUT = 8000; // ausgeschaltete Geräte antworten nie – nicht endlos warten
 
   /** Verbindung zu einem Agenten; `name` erscheint in Fehlermeldungen („PC“, „NAS“). */
   function makeAgent(key, name) {
@@ -21,9 +22,15 @@
       if (!base) return Promise.reject(new ServiceError(0, 'Kein Agent für ' + name + ' eingerichtet.'));
       var headers = Object.assign({}, opts.headers || {});
       if (c.user) headers.Authorization = 'Basic ' + btoa(unescape(encodeURIComponent(c.user + ':' + (c.pass || ''))));
-      return fetch(base + path, { method: opts.method || 'GET', headers: headers, body: opts.body, cache: 'no-store' })
-        .catch(function () { throw new ServiceError(0, name + ' nicht erreichbar (' + base + ', Netz: ' + window.NDNet.label(window.NDNet.profile()) + '). Läuft pc-agent.py? Unterwegs: VPN eingeschaltet?'); })
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, TIMEOUT);
+      return fetch(base + path, { method: opts.method || 'GET', headers: headers, body: opts.body, cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+        .catch(function () {
+          clearTimeout(timer);
+          throw new ServiceError(0, name + ' nicht erreichbar (' + base + ', Netz: ' + window.NDNet.label(window.NDNet.profile()) + '). Ist das Gerät an und läuft pc-agent.py? Unterwegs: VPN eingeschaltet?');
+        })
         .then(function (r) {
+          clearTimeout(timer);
           if (r.status === 401) throw new ServiceError(401, 'Anmeldung abgelehnt – Benutzer oder Passwort prüfen.');
           return r.json().catch(function () { return {}; }).then(function (body) {
             if (!r.ok) throw new ServiceError(r.status, body.error || 'Fehler ' + r.status + ' vom Agenten (' + name + ').');
