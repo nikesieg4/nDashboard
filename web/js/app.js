@@ -62,6 +62,7 @@
   }
 
   function Drawer(props) {
+    var net = useNet();
     return h('aside', { className: 'drawer', 'aria-label': 'Navigation' },
       h('div', { className: 'drawer-brand' }, h(O.LogoSlot, { src: LOGO, alt: 'nDashboard', width: 48, height: 48 }), h('b', null, 'nDashboard')),
       h('div', { className: 'op-label', style: { margin: '12px 0 4px' } }, 'Navigation'),
@@ -69,7 +70,8 @@
         return h(O.NavButton, { key: d[0], icon: d[1], meta: d[3], active: props.page === d[0], onClick: function () { props.onNavigate(d[0]); } }, d[2]);
       }),
       h('div', { className: 'spacer' }),
-      h(O.ListItem, { icon: 'user', title: 'Operator 2231', subtitle: 'Freigabe L3' }),
+      h(O.ListItem, { icon: 'signal', title: 'Netz: ' + (net.profile === 'vpn' ? 'VPN' : 'WLAN'), subtitle: net.checking ? 'prüfe …' : net.mode === 'auto' ? 'automatisch erkannt' : 'fest eingestellt',
+        onClick: function () { props.onNavigate('settings'); } }),
       h(O.Button, { variant: 'ghost', icon: 'settings', onClick: function () { props.onNavigate('settings'); } }, 'Einstellungen'),
       h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { props.onNavigate('login'); } }, 'Abmelden'));
   }
@@ -153,21 +155,48 @@
     }));
   }
 
-  /** Formular für eine Verbindung mit Adresse, Benutzer und Passwort (NAS, PC-Agent). */
+  /** Netzwerk-Profil abonnieren (siehe network.js). */
+  function useNet() {
+    var st = React.useState(window.NDNet.state());
+    React.useEffect(function () { return window.NDNet.subscribe(st[1]); }, []);
+    return st[0];
+  }
+
+  /** Umschalter Automatisch / WLAN / VPN. */
+  function NetworkSettings() {
+    var n = useNet();
+    var text = n.checking ? 'Prüfe, ob das Heimnetz erreichbar ist …'
+      : n.mode === 'auto' ? 'Aktiv: ' + window.NDNet.label(n.profile) + ' – automatisch erkannt'
+      : 'Aktiv: ' + window.NDNet.label(n.profile) + ' – fest eingestellt';
+    return h(O.Panel, { variant: 'framed', title: 'Netzwerk', icon: 'signal' },
+      h(O.Tabs, { items: [{ id: 'auto', label: 'Automatisch' }, { id: 'home', label: 'WLAN' }, { id: 'vpn', label: 'VPN' }], value: n.mode, onChange: window.NDNet.setMode }),
+      h('div', { className: 'op-row', style: { marginTop: 12, justifyContent: 'space-between' } },
+        h(O.Status, { tone: n.checking ? 'info' : n.profile === 'vpn' ? 'signal' : 'ok' }, text),
+        n.mode === 'auto' ? h(O.Button, { variant: 'ghost', size: 'sm', icon: 'signal', disabled: n.checking, onClick: function () { window.NDNet.detect(); } }, 'Neu prüfen') : null),
+      h('div', { className: 'op-field-hint', style: { marginTop: 8 } },
+        'WLAN nutzt die Heimnetz-Adressen (192.168.…), VPN die Tailscale-Adressen (100.…). „Automatisch“ nimmt WLAN, wenn das Heimnetz antwortet, sonst VPN – so kannst du Tailscale zuhause ausschalten.'));
+  }
+
+  /** Formular für eine Verbindung mit WLAN- und VPN-Adresse, Benutzer und Passwort (NAS, PC-Agent, NAS-Agent). */
   function ConnectionSettings(p) {
     var cfg = p.service.config() || {};
-    var url = React.useState(cfg.url || 'http://'), user = React.useState(cfg.user || ''), pass = React.useState(cfg.pass || '');
+    var url = React.useState(cfg.url || ''), urlVpn = React.useState(cfg.urlVpn || ''), user = React.useState(cfg.user || ''), pass = React.useState(cfg.pass || '');
     var state = React.useState(null);
-    function values() { return { url: url[0].trim().replace(/\/+$/, ''), user: user[0].trim(), pass: pass[0] }; }
+    var clean = function (u) { u = u.trim().replace(/\/+$/, ''); return u === 'http:' || u === 'http://' ? '' : u; };
+    function values() { return { url: clean(url[0]), urlVpn: clean(urlVpn[0]), user: user[0].trim(), pass: pass[0] }; }
     function test(e) {
       e.preventDefault();
       var v = values();
-      if (!/^https?:\/\/[^/]+/.test(v.url)) return state[1]({ tone: 'danger', text: 'Adresse muss mit http:// oder https:// beginnen.' });
+      if (!v.url && !v.urlVpn) return state[1]({ tone: 'danger', text: 'Bitte mindestens eine Adresse eintragen.' });
+      var bad = [v.url, v.urlVpn].filter(function (u) { return u && !/^https?:\/\/[^/]+/.test(u); })[0];
+      if (bad) return state[1]({ tone: 'danger', text: 'Adresse muss mit http:// beginnen: ' + bad });
       var previous = p.service.config();
       p.service.save(v);
       state[1]({ tone: 'info', text: 'Verbinde …' });
-      p.test().then(function (text) {
-        state[1]({ tone: 'ok', text: 'Verbunden · ' + text + '. Gespeichert.' });
+      var active = window.NDNet.profile(), other = active === 'vpn' ? v.url : v.urlVpn;
+      Promise.all([p.test(), other ? window.NDNet.reachable(other, 2500) : Promise.resolve(null)]).then(function (r) {
+        var otherText = r[1] === null ? '' : ' · ' + (active === 'vpn' ? 'WLAN' : 'VPN') + '-Adresse ' + (r[1] ? 'erreichbar' : 'gerade nicht erreichbar' + (active === 'vpn' ? '' : ' (VPN aus?)'));
+        state[1]({ tone: 'ok', text: 'Verbunden über ' + window.NDNet.label(active) + ' · ' + r[0] + otherText + '. Gespeichert.' });
       }, function (err) {
         if (previous) p.service.save(previous);
         state[1]({ tone: 'danger', text: err.message + ' Nicht gespeichert.' });
@@ -175,7 +204,9 @@
     }
     return h(O.Panel, { variant: p.variant || 'outlined', mutedCorners: p.variant !== 'framed', title: p.title, icon: p.icon },
       h('form', { className: 'op-col', style: { gap: 14 }, onSubmit: test },
-        h(O.TextField, { label: 'Adresse', value: url[0], onChange: function (e) { url[1](e.target.value); }, placeholder: p.placeholder, inputMode: 'url', autoComplete: 'off', spellCheck: false, hint: p.hint }),
+        h(O.TextField, { label: 'Adresse im WLAN', value: url[0], onChange: function (e) { url[1](e.target.value); }, placeholder: p.placeholder, inputMode: 'url', autoComplete: 'off', spellCheck: false, hint: p.hint }),
+        h(O.TextField, { label: 'Adresse über VPN (optional)', value: urlVpn[0], onChange: function (e) { urlVpn[1](e.target.value); }, placeholder: p.vpnPlaceholder, inputMode: 'url', autoComplete: 'off', spellCheck: false,
+          hint: 'Tailscale-Adresse des Geräts (tailscale ip -4), gleicher Port.' }),
         h(O.TextField, { label: 'Benutzer', value: user[0], onChange: function (e) { user[1](e.target.value); }, autoComplete: 'username' }),
         h(O.TextField, { label: 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password' }),
         h('div', { className: 'op-row' },
@@ -186,20 +217,20 @@
   }
 
   function NasSettings() {
-    return h(ConnectionSettings, { title: 'NAS-Verbindung', icon: 'folder', variant: 'framed', service: NAS, placeholder: 'http://192.168.1.42:5005',
-      hint: 'Wird von nas-server.py beim Start angezeigt. Auf dem Handy die IP statt .local verwenden.', goto: ['#/files', 'Zu den Dateien'],
+    return h(ConnectionSettings, { title: 'NAS-Verbindung', icon: 'folder', variant: 'framed', service: NAS, placeholder: 'http://192.168.1.42:5005', vpnPlaceholder: 'http://100.x.y.z:5005',
+      hint: 'Wird von nas-server.py beim Start angezeigt. Die IP verwenden, nicht .local.', goto: ['#/files', 'Zu den Dateien'],
       test: function () { return NAS.list('/').then(function (d) { return d.items.length + ' Einträge im Hauptordner'; }); } });
   }
 
   function AgentSettings() {
-    return h(ConnectionSettings, { title: 'PC-Agent (Sensoren, Steuerung)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006',
+    return h(ConnectionSettings, { title: 'PC-Agent (Sensoren, Steuerung)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006', vpnPlaceholder: 'http://100.x.y.z:5006',
       hint: 'Wird von pc-agent.py beim Start angezeigt.', goto: ['#/sensors', 'Zu den Sensoren'],
       test: function () { return Agent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
   }
 
   function NasAgentSettings() {
     var NasAgent = window.NDServices.NasAgent;
-    return h(ConnectionSettings, { title: 'NAS-Agent (Steuerung)', icon: 'power', service: NasAgent, placeholder: 'http://192.168.1.60:5006',
+    return h(ConnectionSettings, { title: 'NAS-Agent (Steuerung)', icon: 'power', service: NasAgent, placeholder: 'http://192.168.1.60:5006', vpnPlaceholder: 'http://100.x.y.z:5006',
       hint: 'pc-agent.py auf dem NAS (Raspberry Pi), siehe PC-AGENT.md. Nicht die Adresse von nas-server.py (Port 5005).', goto: ['#/control', 'Zur Steuereinheit'],
       test: function () { return NasAgent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
   }
@@ -244,6 +275,7 @@
 
   function Settings() {
     return [
+      h(NetworkSettings, { key: 'net' }),
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
       h(NasAgentSettings, { key: 'nasagent' }),
@@ -272,7 +304,9 @@
     var desktop = useMedia('(min-width: 900px)');
     var bodyRef = React.useRef(null);
 
+    var net = useNet();
     React.useEffect(function () { if (window.ND_VERSION.code > 0) window.NDUpdate.check(false); }, []);
+    React.useEffect(function () { if (window.NDNet.mode() === 'auto') window.NDNet.detect(); }, []);
     React.useEffect(function () {
       function on() { rt[1](currentRoute()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
       window.addEventListener('hashchange', on);
@@ -302,7 +336,10 @@
       desktop ? drawer : null,
       h('div', { className: 'app-main' },
         bar,
-        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner), h(RENDER[page], { path: path, id: routeId }))),
+        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner),
+          // Seiten mit Verbindungen erst nach der Netzerkennung laden und bei einem Netzwechsel neu aufbauen
+          net.mode === 'auto' && !net.detected && page !== 'settings' ? h('div', { className: 'hint', key: 'net' }, 'Prüfe Netzwerk …')
+            : h(RENDER[page], { key: net.profile, path: path, id: routeId }))),
         footer),
       h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);
