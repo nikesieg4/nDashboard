@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=nDashboard
+Comment=Dashboard im Terminal-Ops-Design
+Exec=ndashboard
+Icon=de.nikesieg4.nDashboard
+Terminal=false
+Categories=Utility;
+StartupWMClass=de.nikesieg4.nDashboard

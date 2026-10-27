@@ -1,0 +1,27 @@
+app-id: de.nikesieg4.nDashboard
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: ndashboard
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+modules:
+  - name: ndashboard
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 linux/ndashboard.py /app/bin/ndashboard
+      - mkdir -p /app/share/ndashboard
+      - cp -r web /app/share/ndashboard/web
+      - install -Dm644 linux/de.nikesieg4.nDashboard.desktop /app/share/applications/de.nikesieg4.nDashboard.desktop
+      - install -Dm644 linux/de.nikesieg4.nDashboard.metainfo.xml /app/share/metainfo/de.nikesieg4.nDashboard.metainfo.xml
+      - install -Dm644 linux/de.nikesieg4.nDashboard.svg /app/share/icons/hicolor/scalable/apps/de.nikesieg4.nDashboard.svg
+    sources:
+      - type: dir
+        path: ../web
+        dest: web
+      - type: dir
+        path: .
+        dest: linux

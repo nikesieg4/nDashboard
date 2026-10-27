@@ -1,0 +1,37 @@
+/* nDashboard — App-Hülle: Phone-Layout (APK) und Desktop-Layout (Flatpak). */
+html, body, #root { height: 100%; }
+body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
+
+.app { display: flex; height: 100%; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg-000); }
+.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.app-body { flex: 1; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.app-body-inner { width: 100%; max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-4); flex: 1; }
+.app-footer { padding: var(--space-3); background: var(--bg-100); border-top: var(--hairline) solid var(--signal-dim); }
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+.g3 .op-btn { padding-left: var(--space-1); padding-right: var(--space-1); letter-spacing: .06em; min-width: 0; }
+.spacer { flex: 1; }
+.hint { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); text-align: center; }
+.cam { padding: 8px !important; aspect-ratio: 4 / 3; display: flex; align-items: flex-end; justify-content: space-between; background: var(--bg-200) !important; }
+
+/* Navigationsleiste (Drawer auf dem Handy, feste Seitenleiste auf dem Desktop) */
+.drawer { width: 280px; flex: none; background: var(--bg-100); border-right: var(--hairline) solid var(--signal-dim); padding: var(--space-4); display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.drawer-scrim { position: fixed; inset: 0; z-index: 20; display: flex; }
+.drawer-scrim .drawer { box-shadow: var(--overlay); }
+.drawer-scrim-dim { flex: 1; background: rgba(0, 0, 0, .55); border: 0; padding: 0; cursor: pointer; }
+.drawer-brand { display: flex; align-items: center; gap: var(--space-3); }
+.drawer-brand b { font-size: 18px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+
+/* Login: eigene Vollbildseite */
+.login { flex: 1; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+.login-card { width: 100%; max-width: 420px; margin: 0 auto; }
+
+/* Desktop: Seitenleiste dauerhaft sichtbar, keine Bottom-Navigation */
+@media (min-width: 900px) {
+  .app-body { padding: var(--space-6) var(--space-8); }
+  .app-body-inner { gap: var(--space-6); }
+  .tiles-desktop { grid-template-columns: repeat(4, 1fr); }
+  .cams-desktop { grid-template-columns: repeat(4, 1fr); }
+  .is-desktop .op-bottomnav { display: none; }
+}

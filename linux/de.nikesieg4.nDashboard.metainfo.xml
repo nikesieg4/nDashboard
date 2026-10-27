@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>de.nikesieg4.nDashboard</id>
+  <name>nDashboard</name>
+  <summary>Dashboard im Terminal-Ops-Design</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>Erste Version von nDashboard: alle Seiten des App-Templates, noch ohne Funktion.</p>
+  </description>
+  <launchable type="desktop-id">de.nikesieg4.nDashboard.desktop</launchable>
+  <url type="homepage">https://github.com/nikesieg4/nDashboard</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.1.0" date="2026-10-27" />
+  </releases>
+</component>

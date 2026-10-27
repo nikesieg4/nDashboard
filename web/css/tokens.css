@@ -1,0 +1,16 @@
+/* Terminal Ops — design tokens (aus tokens.json des Design-Systems). */
+:root {
+  --bg-000: #121212; --bg-100: #1b1b1a; --bg-200: #252524; --bg-300: #323230;
+  --dot: #262624; --line: #3d3d38; --line-strong: #77766a;
+  --ink: #e8e7e0; --ink-muted: #a8a79c; --ink-faint: #93928a;
+  --signal: #f4d24c; --signal-dim: #a88f2c; --signal-fill: rgba(244, 210, 76, 0.22); --on-signal: #141414;
+  --ok: #7fd08b; --warn: #f2a541; --danger: #ff6a5c; --info: #6db8ff; --focus: #ffffff;
+  --font-display: "Barlow", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px;
+  --radius-0: 0px; --radius-sm: 2px; --radius-md: 4px;
+  --hairline: 1px; --bracket-weight: 3px; --bracket-arm: 18px; --dot-pitch: 6px; --rail-width: 4px;
+  --glow: 0 0 0 1px rgba(244, 210, 76, 0.35), 0 0 18px rgba(244, 210, 76, 0.12);
+  --overlay: 0 18px 48px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}

@@ -1,0 +1,34 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'de.nikesieg4.ndashboard'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'de.nikesieg4.ndashboard'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    // Die Oberfläche liegt im gemeinsamen Ordner web/ und wird direkt als Asset eingebunden.
+    sourceSets {
+        main.assets.srcDirs = ['../../web']
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Vorerst mit dem Debug-Schlüssel signiert, damit die APK direkt installierbar ist.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

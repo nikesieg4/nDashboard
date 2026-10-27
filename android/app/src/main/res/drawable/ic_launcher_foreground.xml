@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo: 3×3-Tastenfeld zwischen zwei Winkelklammern (Terminal Ops). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="18" android:translateY="18" android:scaleX="0.75" android:scaleY="0.75">
+        <path android:strokeColor="#f4d24c" android:strokeWidth="5" android:strokeLineCap="square"
+            android:pathData="M24,22L10,48l14,26M72,22l14,26-14,26" />
+        <path android:fillColor="#f4d24c"
+            android:pathData="M31,31h9v9h-9z M43.5,31h9v9h-9z M56,31h9v9h-9z M31,43.5h9v9h-9z M56,43.5h9v9h-9z M31,56h9v9h-9z M43.5,56h9v9h-9z M56,56h9v9h-9z" />
+        <path android:fillColor="#e8e7e0" android:pathData="M43.5,43.5h9v9h-9z" />
+    </group>
+</vector>
