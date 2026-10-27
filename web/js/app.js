@@ -1,9 +1,11 @@
 /* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
- * die Dateien (NAS über WebDAV, siehe files.js / nas.js) und die NAS-Einstellungen.
+ * Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
+ * Banking (Stripe, banking.js) und die Einstellungen dazu.
  * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
   var O = window.Ops, h = React.createElement, NAS = window.NAS, FilesUI = window.NDFiles;
+  var Agent = window.NDServices.Agent, Stripe = window.NDServices.Stripe;
   var LOGO = 'img/logo.svg', LOGO_SMALL = 'img/logo-small.svg';
   function noop() {}
 
@@ -14,9 +16,9 @@
     control:      { title: 'Steuereinheit', nav: 'home' },
     files:        { title: 'Dateien', nav: 'files', root: true },
     file:         { title: 'Datei', nav: 'files' },
-    sensors:      { title: 'Bewegungsmelder', sub: '48 Sensoren online', nav: 'sec', root: true },
+    sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sec', root: true },
     security:     { title: 'Sicherheit', nav: 'sec', root: true },
-    banking:      { title: 'Konten', sub: 'Nicht verfügbar', nav: 'more', root: true },
+    banking:      { title: 'Banking', sub: 'Stripe', nav: 'more', root: true },
     management:   { title: 'Management', sub: 'Q4 · 2026', nav: 'more', root: true },
     news:         { title: 'Bulletin', nav: 'more', root: true },
     chat:         { title: 'Chat', nav: 'chat', root: true },
@@ -25,7 +27,7 @@
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
-    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'], ['banking', 'bank', 'Banking', 'N/V'],
+    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'], ['banking', 'bank', 'Banking'],
     ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', '5']
   ];
   var BOTTOM = [
@@ -129,20 +131,6 @@
     ];
   }
 
-  function Sensors() {
-    return [
-      h(O.Alert, { key: 'a', tone: 'danger', title: 'Nordkorridor' }, 'Ungeplante Bewegung um 01:27.'),
-      h('div', { key: 'g', className: 'g2' }, h(O.StatTile, { label: 'Auslösungen / 1 h', value: '7' }), h(O.StatTile, { label: 'Latenz', value: '12', unit: 'ms' })),
-      h(O.Panel, { key: 'c', title: 'Aktivität · 60 min', icon: 'chart' }, h(O.AreaChart, { data: [2, 3, 2, 4, 3, 5, 9, 14, 11, 6, 4, 3, 5, 8, 12, 18, 15, 9, 6, 4], min: 0, max: 20, height: 120, band: [.7, .85] })),
-      h('div', { key: 'l' }, [['Nordkorridor', 'danger', 'Bewegung'], ['Tor 16', 'warn', 'Geringe Aktivität'], ['Serverraum', 'ok', 'Frei'], ['Lobby', 'ok', 'Frei']].map(function (z) {
-        return h(O.ListItem, { key: z[0], icon: 'sensor', title: z[0], end: h(O.Status, { tone: z[1] }, z[2]) });
-      })),
-      h(O.Panel, { key: 'k', variant: 'outlined', mutedCorners: true, title: 'Steuerung' },
-        h('div', { className: 'op-col', style: { gap: 12 } },
-          h(O.Toggle, { defaultChecked: true, label: 'Außenbereich' }), h(O.Toggle, { defaultChecked: true, label: 'Innenbereich' }), h(O.Toggle, { label: 'Stiller Alarm' })))
-    ];
-  }
-
   function Security() {
     return [
       h(O.Panel, { key: 'p', variant: 'framed' },
@@ -158,10 +146,6 @@
         h(O.EventLog, { rail: true, items: [{ text: 'Alle Systeme betriebsbereit', time: '01:26' }, { text: 'Zugang an Tor 16 verweigert', time: '01:25', tone: 'warn' }] })),
       h(O.Button, { key: 'b', variant: 'danger', icon: 'lock' }, 'Lockdown einleiten')
     ];
-  }
-
-  function Banking() {
-    return h(Unavailable, { title: 'Banking', icon: 'bank', text: 'Konten und Umsätze sind in dieser Version nicht verfügbar.' });
   }
 
   function Management() {
@@ -221,8 +205,9 @@
     }));
   }
 
-  function NasSettings() {
-    var cfg = NAS.config() || {};
+  /** Formular für eine Verbindung mit Adresse, Benutzer und Passwort (NAS, PC-Agent). */
+  function ConnectionSettings(p) {
+    var cfg = p.service.config() || {};
     var url = React.useState(cfg.url || 'http://'), user = React.useState(cfg.user || ''), pass = React.useState(cfg.pass || '');
     var state = React.useState(null);
     function values() { return { url: url[0].trim().replace(/\/+$/, ''), user: user[0].trim(), pass: pass[0] }; }
@@ -230,27 +215,66 @@
       e.preventDefault();
       var v = values();
       if (!/^https?:\/\/[^/]+/.test(v.url)) return state[1]({ tone: 'danger', text: 'Adresse muss mit http:// oder https:// beginnen.' });
-      var previous = NAS.config();
-      NAS.save(v);
+      var previous = p.service.config();
+      p.service.save(v);
       state[1]({ tone: 'info', text: 'Verbinde …' });
-      NAS.list('/').then(function (d) {
-        state[1]({ tone: 'ok', text: 'Verbunden · ' + d.items.length + ' Einträge im Hauptordner. Gespeichert.' });
+      p.test().then(function (text) {
+        state[1]({ tone: 'ok', text: 'Verbunden · ' + text + '. Gespeichert.' });
       }, function (err) {
-        if (previous) NAS.save(previous);
+        if (previous) p.service.save(previous);
         state[1]({ tone: 'danger', text: err.message + ' Nicht gespeichert.' });
       });
     }
-    return h(O.Panel, { key: 'nas', variant: 'framed', title: 'NAS-Verbindung', icon: 'folder' },
+    return h(O.Panel, { variant: p.variant || 'outlined', mutedCorners: p.variant !== 'framed', title: p.title, icon: p.icon },
       h('form', { className: 'op-col', style: { gap: 14 }, onSubmit: test },
-        h(O.TextField, { label: 'Adresse', value: url[0], onChange: function (e) { url[1](e.target.value); }, placeholder: 'http://192.168.1.42:5005', inputMode: 'url', autoComplete: 'off', spellCheck: false,
-          hint: 'Wird von nas-server.py beim Start angezeigt.' }),
+        h(O.TextField, { label: 'Adresse', value: url[0], onChange: function (e) { url[1](e.target.value); }, placeholder: p.placeholder, inputMode: 'url', autoComplete: 'off', spellCheck: false, hint: p.hint }),
         h(O.TextField, { label: 'Benutzer', value: user[0], onChange: function (e) { user[1](e.target.value); }, autoComplete: 'username' }),
         h(O.TextField, { label: 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password' }),
         h('div', { className: 'op-row' },
           h(O.Button, { type: 'submit', icon: 'signal' }, 'Verbinden & speichern'),
-          NAS.configured() ? h(O.Button, { variant: 'ghost', onClick: function () { location.hash = '#/files'; } }, 'Zu den Dateien') : null),
+          p.service.configured() ? h(O.Button, { variant: 'ghost', onClick: function () { location.hash = p.goto[0]; } }, p.goto[1]) : null),
         state[0] ? h(O.Status, { tone: state[0].tone }, state[0].text) : null,
         h('div', { className: 'op-field-hint' }, 'Die Zugangsdaten werden nur auf diesem Gerät gespeichert.')));
+  }
+
+  function NasSettings() {
+    return h(ConnectionSettings, { title: 'NAS-Verbindung', icon: 'folder', variant: 'framed', service: NAS, placeholder: 'http://192.168.1.42:5005',
+      hint: 'Wird von nas-server.py beim Start angezeigt. Auf dem Handy die IP statt .local verwenden.', goto: ['#/files', 'Zu den Dateien'],
+      test: function () { return NAS.list('/').then(function (d) { return d.items.length + ' Einträge im Hauptordner'; }); } });
+  }
+
+  function AgentSettings() {
+    return h(ConnectionSettings, { title: 'PC-Agent (Sensoren)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006',
+      hint: 'Wird von pc-agent.py beim Start angezeigt.', goto: ['#/sensors', 'Zu den Sensoren'],
+      test: function () { return Agent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
+  }
+
+  function StripeSettings() {
+    var cfg = Stripe.config() || {}, key = React.useState(cfg.key || ''), state = React.useState(null);
+    function test(e) {
+      e.preventDefault();
+      var k = key[0].trim();
+      if (/^pk_/.test(k)) return state[1]({ tone: 'danger', text: 'Das ist ein öffentlicher Schlüssel (pk_…). Benötigt wird ein eingeschränkter Schlüssel (rk_…).' });
+      if (!/^(rk|sk)_(live|test)_/.test(k)) return state[1]({ tone: 'danger', text: 'Schlüssel muss mit rk_live_ oder rk_test_ beginnen.' });
+      var previous = Stripe.config();
+      Stripe.save({ key: k });
+      state[1]({ tone: 'info', text: 'Verbinde …' });
+      Stripe.balance().then(function () { return Stripe.transactions(Math.floor(Date.now() / 1000) - 86400, 1); }).then(function () {
+        state[1]({ tone: 'ok', text: 'Verbunden' + (/_test_/.test(k) ? ' (Testmodus)' : '') + '. Gespeichert.' + (/^sk_/.test(k) ? ' Tipp: Ein eingeschränkter Schlüssel (rk_…) mit Leserechten ist sicherer.' : '') });
+      }, function (err) {
+        if (previous) Stripe.save(previous); else Stripe.save(null);
+        state[1]({ tone: 'danger', text: err.message + ' Nicht gespeichert.' });
+      });
+    }
+    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Stripe (Banking)', icon: 'bank' },
+      h('form', { className: 'op-col', style: { gap: 14 }, onSubmit: test },
+        h(O.TextField, { label: 'Eingeschränkter API-Schlüssel', type: 'password', value: key[0], onChange: function (e) { key[1](e.target.value); }, placeholder: 'rk_live_…', autoComplete: 'off', spellCheck: false,
+          hint: 'Stripe-Dashboard → Entwickler → API-Schlüssel → Eingeschränkten Schlüssel erstellen. Nur Lesen für „Balance“ und „Payouts“, alles andere „Keine“.' }),
+        h('div', { className: 'op-row' },
+          h(O.Button, { type: 'submit', icon: 'signal' }, 'Verbinden & speichern'),
+          Stripe.configured() ? h(O.Button, { variant: 'ghost', onClick: function () { location.hash = '#/banking'; } }, 'Zum Banking') : null),
+        state[0] ? h(O.Status, { tone: state[0].tone }, state[0].text) : null,
+        h('div', { className: 'op-field-hint' }, 'Der Schlüssel wird nur auf diesem Gerät gespeichert und nur für Leseabfragen verwendet.')));
   }
 
   /** Update-Stand abonnieren (siehe update.js). */
@@ -294,6 +318,8 @@
   function Settings() {
     return [
       h(NasSettings, { key: 'nas' }),
+      h(AgentSettings, { key: 'agent' }),
+      h(StripeSettings, { key: 'stripe' }),
       h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
         h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
@@ -303,6 +329,8 @@
   }
 
   function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
+  function Sensors() { return h(window.NDMonitor.Sensors); }
+  function Banking() { return h(window.NDBanking.Banking); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
   var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security, banking: Banking,

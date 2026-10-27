@@ -67,6 +67,8 @@ jobs:
       - name: Version setzen
         run: |
           echo "window.ND_VERSION = { code: $VERSION_CODE, name: '$VERSION' };" > web/js/version.js
+          # Versionsangabe für Softwareverwaltung (GNOME Software, Discover)
+          sed -i "s#<releases>#<releases>\n    <release version=\"$VERSION\" date=\"$(date -u +%F)\" />#" linux/de.nikesieg4.nDashboard.metainfo.xml
       - name: Flatpak-Werkzeuge installieren
         run: |
           sudo apt-get update
