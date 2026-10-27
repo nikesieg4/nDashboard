@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """nDashboard für Linux: zeigt die gemeinsame Weboberfläche (web/) in einem GTK4-Fenster."""
+import locale
 import os
 import sys
 
-import gi
+# Fehlt die Sprache des Systems in der Flatpak-Laufzeit, fällt glibc auf ASCII zurück.
+# WebKit startet seine Prozesse dann über flatpak-spawn, das an Umlauten in
+# Umgebungsvariablen scheitert ("Invalid byte sequence") – WebKit bricht ab.
+# Deshalb in diesem Fall auf das immer vorhandene C.UTF-8 ausweichen.
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    os.environ["LC_ALL"] = "C.UTF-8"
+    locale.setlocale(locale.LC_ALL, "C.UTF-8")
+
+import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("WebKit", "6.0")

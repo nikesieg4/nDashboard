@@ -9,3 +9,6 @@ android/local.properties
 # Flatpak
 .flatpak-builder/
 linux/.flatpak-builder/
+
+# Python
+__pycache__/
