@@ -253,13 +253,52 @@
         h('div', { className: 'op-field-hint' }, 'Die Zugangsdaten werden nur auf diesem Gerät gespeichert.')));
   }
 
+  /** Update-Stand abonnieren (siehe update.js). */
+  function useUpdate() {
+    var st = React.useState(window.NDUpdate.state());
+    React.useEffect(function () { return window.NDUpdate.subscribe(st[1]); }, []);
+    return st[0];
+  }
+
+  function installUpdate() {
+    if (!window.NDUpdate.install()) FilesUI.toast('Update konnte nicht gestartet werden.', 'danger');
+  }
+
+  /** Hinweis oben in der App, wenn auf GitHub eine neuere Version liegt. */
+  function UpdateBanner() {
+    var u = useUpdate(), hidden = React.useState(null);
+    if (!window.NDUpdate.available() || hidden[0] === u.latest.tag) return null;
+    var android = window.NDUpdate.canInstall();
+    return h(O.Alert, { tone: 'info', title: 'Update verfügbar: ' + u.latest.name },
+      android ? 'Die neue Version wird heruntergeladen, danach bestätigst du die Installation.' : 'Das Flatpak aktualisiert sich über die Softwareverwaltung oder mit „flatpak update“.',
+      h('div', { className: 'op-row', style: { marginTop: 10 } },
+        android ? h(O.Button, { size: 'sm', icon: 'download', onClick: installUpdate }, 'Jetzt aktualisieren') : null,
+        h(O.Button, { size: 'sm', variant: 'ghost', onClick: function () { hidden[1](u.latest.tag); } }, 'Später')));
+  }
+
+  function UpdateSettings() {
+    var u = useUpdate(), v = window.ND_VERSION, available = window.NDUpdate.available();
+    var status = u.checking ? { tone: 'info', text: 'Suche nach Updates …' }
+      : u.error ? { tone: 'danger', text: u.error }
+      : available ? { tone: 'warn', text: 'Neue Version ' + u.latest.name + ' verfügbar' }
+      : u.latest && v.code > 0 ? { tone: 'ok', text: 'Aktuell' }
+      : v.code === 0 ? { tone: 'neutral', text: 'Entwicklungs-Build – keine automatischen Updates' } : null;
+    return h(O.Panel, { key: 'upd', variant: 'outlined', mutedCorners: true, title: 'Updates', icon: 'download' },
+      h(O.InfoList, { items: [{ label: 'Installiert', value: v.name }].concat(u.latest ? [{ label: 'Neueste auf GitHub', value: u.latest.name }] : []) }),
+      h('div', { className: 'op-row', style: { marginTop: 14 } },
+        h(O.Button, { variant: 'outline', icon: 'signal', disabled: u.checking, onClick: function () { window.NDUpdate.check(true); } }, 'Nach Updates suchen'),
+        available && window.NDUpdate.canInstall() ? h(O.Button, { icon: 'download', onClick: installUpdate }, 'Jetzt aktualisieren') : null),
+      status ? h('div', { style: { marginTop: 10 } }, h(O.Status, { tone: status.tone }, status.text)) : null);
+  }
+
   function Settings() {
     return [
       h(NasSettings, { key: 'nas' }),
+      h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
         h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
       h(O.Panel, { key: 'c', variant: 'outlined', mutedCorners: true, title: 'Info' },
-        h(O.InfoList, { items: [{ label: 'Version', value: '0.2.0' }, { label: 'Design', value: 'Terminal Ops' }] }))
+        h(O.InfoList, { items: [{ label: 'Version', value: window.ND_VERSION.name }, { label: 'Design', value: 'Terminal Ops' }] }))
     ];
   }
 
@@ -276,6 +315,7 @@
     var desktop = useMedia('(min-width: 900px)');
     var bodyRef = React.useRef(null);
 
+    React.useEffect(function () { if (window.ND_VERSION.code > 0) window.NDUpdate.check(false); }, []);
     React.useEffect(function () {
       function on() { rt[1](currentRoute()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
       window.addEventListener('hashchange', on);
@@ -305,7 +345,7 @@
       desktop ? drawer : null,
       h('div', { className: 'app-main' },
         bar,
-        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(RENDER[page], { path: path }))),
+        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner), h(RENDER[page], { path: path }))),
         footer),
       h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);

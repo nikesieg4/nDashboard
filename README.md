@@ -24,25 +24,35 @@ Ausführliche Anleitungen: [Rechner als NAS](tools/NETZWERKSPEICHER.md) · [Rasp
 
 Die Zugangsdaten bleiben nur auf dem jeweiligen Gerät. Die Verbindung ist unverschlüsselt (HTTP) und nur fürs Heimnetz gedacht – den Port nie im Router freigeben.
 
-## Fertige Builds
+## Installieren und Updates
 
-| Plattform | Datei |
-|---|---|
-| Android (Handy) | [`dist/nDashboard.apk`](dist/nDashboard.apk) |
-| Linux-PC (Flatpak) | [`dist/nDashboard.flatpak`](dist/nDashboard.flatpak) |
+Jeder Push auf `main` veröffentlicht automatisch eine neue Version (`.github/workflows/build.yml`):
 
-Jeder Push baut beide Dateien außerdem neu über GitHub Actions (`.github/workflows/build.yml`). Sie liegen dann im jeweiligen Lauf unter **Artifacts**.
+- ein [GitHub Release](https://github.com/nikesieg4/nDashboard/releases/latest) mit `nDashboard.apk` und `nDashboard.flatpak`
+- eine Flatpak-Paketquelle unter <https://nikesieg4.github.io/nDashboard/>
 
-### Installieren
+**Android:** Die APK aus dem [neuesten Release](https://github.com/nikesieg4/nDashboard/releases/latest) einmal installieren. Danach prüft die App beim Start (höchstens einmal pro Stunde) auf GitHub, ob es eine neuere Version gibt, und zeigt „Update verfügbar“. Ein Tipp auf **Jetzt aktualisieren** lädt die neue APK und öffnet den Installieren-Dialog. Beim ersten Mal fragt Android, ob nDashboard Apps installieren darf. Manuell geht es unter Einstellungen → Updates.
 
-**Android:** APK aufs Handy kopieren, öffnen und „Installation aus unbekannten Quellen“ erlauben. Die APK ist vorerst mit einem Debug-Schlüssel signiert.
-
-**Linux:**
+**Linux:** Einmal über die Paketquelle installieren:
 ```sh
 flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --user nDashboard.flatpak   # lädt bei Bedarf die GNOME-51-Laufzeit nach
-flatpak run de.nikesieg4.nDashboard
+flatpak install --user https://nikesieg4.github.io/nDashboard/ndashboard.flatpakref
 ```
+Danach kommen Updates wie bei jeder anderen Flatpak-App über die Softwareverwaltung (GNOME Software, KDE Discover) oder mit `flatpak update`. Die App weist zusätzlich auf neue Versionen hin.
+
+Jeder Push (auch auf andere Branches) baut beide Dateien außerdem im Actions-Lauf unter **Artifacts**.
+
+### Einmalige Einrichtung im Repo
+
+Damit `main` veröffentlichen kann, braucht das Repo:
+
+1. **Secrets** unter *Settings → Secrets and variables → Actions → New repository secret*:
+   - `ANDROID_KEYSTORE_BASE64` – Android-Signaturschlüssel (Base64). Alle Updates müssen mit demselben Schlüssel signiert sein, sonst lehnt Android sie ab.
+   - `ANDROID_KEYSTORE_PASSWORD` – Passwort dazu
+   - `FLATPAK_GPG_PRIVATE_KEY` – GPG-Schlüssel, mit dem die Flatpak-Paketquelle signiert wird. Der öffentliche Teil liegt in `linux/flatpak-repo-key.gpg.base64`.
+2. **GitHub Pages** unter *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
+
+Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur das Veröffentlichen auf `main` schlägt mit einem Hinweis fehl.
 
 ## Seiten
 
@@ -72,12 +82,13 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/app.js     Alle Seiten + Navigation
   js/nas.js     WebDAV-Client fürs NAS
   js/files.js   Seiten Dateien und Datei (Editor/Vorschau)
+  js/update.js  Prüft GitHub Releases auf neue Versionen
+  js/version.js Versionsnummer (setzt GitHub Actions beim Bauen)
   css/          Design-Tokens, Komponenten-CSS, App-Layout, lokale Schriften
   vendor/       React 18.3.1 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
 tools/      nas-server.py (WebDAV-Server fürs NAS) + Anleitungen
-dist/       Fertig gebaute APK und Flatpak
 ```
 
 ## Selbst bauen
