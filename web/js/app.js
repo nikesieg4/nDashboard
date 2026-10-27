@@ -122,7 +122,7 @@
           locked ? h(O.Status, { tone: 'warn' }, 'Zu viele Fehlversuche. Nächster Versuch in ' + Math.ceil((lockUntil[0] - now[0]) / 1000) + ' s.') : null,
           h(O.Button, { variant: r && r.offline ? 'outline' : 'ghost', icon: 'door', onClick: Auth.skip }, 'Ohne Anmeldung weiter'))),
       h('div', { className: 'hint' }, 'Bürgerportal + Disponenten-Simulator · Abmeldung nach ' + Auth.idleMinutes + ' min ohne Eingabe'),
-      cfg.gamePrefix ? null : h('div', { className: 'hint' }, 'Spiel-Präfix noch nicht eingerichtet: nach dem Login unter Einstellungen → Konten eintragen.'),
+      cfg.gamePass ? null : h('div', { className: 'hint' }, 'Spiel-Passwort noch nicht eingerichtet: nach dem Login unter Einstellungen → Konten eintragen.'),
       h('div', { className: 'spacer' }));
   }
 
@@ -290,14 +290,18 @@
       status ? h('div', { style: { marginTop: 10 } }, h(O.Status, { tone: status.tone }, status.text)) : null);
   }
 
-  /** Konten für die Admin-Bereiche: Portal-Benutzer und Präfix des Spiel-Passworts (nur auf diesem Gerät). */
+  /** Konten für die Admin-Bereiche: Portal-Benutzer und Spiel-Passwort (nur auf diesem Gerät). */
   function AccountSettings() {
     var a = Auth.useAuth(), cfg = Auth.settings();
-    var user = React.useState(cfg.user), prefix = React.useState(cfg.gamePrefix), saved = React.useState(false);
+    var user = React.useState(cfg.user), gamePass = React.useState(''), saved = React.useState(false);
     function save(e) {
       e.preventDefault();
-      Auth.saveSettings({ user: user[0].trim() || 'Administrator', gamePrefix: prefix[0] });
-      saved[1](true);
+      var change = { user: user[0].trim() || 'Administrator' };
+      if (gamePass[0]) change.gamePass = gamePass[0];
+      Auth.saveSettings(change);
+      gamePass[1](''); saved[1](true);
+      // Neues Spiel-Passwort gleich ausprobieren, wenn das Portal angemeldet ist
+      if (change.gamePass && a.portal) Auth.loginGame('').then(function (r) { FilesUI.toast(r.ok ? 'Beim Spiel angemeldet' : r.reason, r.ok ? 'ok' : 'danger'); });
     }
     return h(O.Panel, { variant: 'framed', title: 'Konten (Management)', icon: 'user' },
       h(O.InfoList, { items: [
@@ -306,12 +310,13 @@
       h('form', { className: 'op-col', style: { gap: 14, marginTop: 14 }, onSubmit: save },
         h(O.TextField, { label: 'Benutzer (Bürgerportal)', value: user[0], onChange: function (e) { user[1](e.target.value); saved[1](false); }, autoComplete: 'off', spellCheck: false,
           hint: '„Administrator“ oder die E-Mail-Adresse des Portal-Kontos.' }),
-        h(O.TextField, { label: 'Präfix für das Spiel-Passwort', type: 'password', value: prefix[0], onChange: function (e) { prefix[1](e.target.value); saved[1](false); }, autoComplete: 'off',
-          hint: 'Wird beim Login vor dein Passwort gesetzt (Präfix + Passwort = Codes-Admin-Passwort). Bleibt nur auf diesem Gerät.' }),
+        h(O.TextField, { label: 'Passwort Disponenten-Simulator', type: 'password', value: gamePass[0], onChange: function (e) { gamePass[1](e.target.value); saved[1](false); }, autoComplete: 'new-password',
+          placeholder: cfg.gamePass ? '•••••••• gespeichert – leer lassen = behalten' : 'Codes-Admin-Passwort',
+          hint: 'Bleibt nur auf diesem Gerät und wird erst nach dem Login fürs Bürgerportal benutzt.' }),
         h('div', { className: 'op-row' },
           h(O.Button, { type: 'submit', icon: 'settings' }, 'Speichern'),
           h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { Auth.logout(); } }, 'Abmelden')),
-        saved[0] ? h(O.Status, { tone: 'ok' }, 'Gespeichert. Gilt ab der nächsten Anmeldung.') : null));
+        saved[0] ? h(O.Status, { tone: 'ok' }, 'Gespeichert.') : null));
   }
 
   function Settings() {

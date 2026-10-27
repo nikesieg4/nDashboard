@@ -5,14 +5,11 @@ Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldu
 
 ## Anmeldung
 
-Beim Start fragt die App nach **Benutzer** (Standard „Administrator“) und **Passwort**. Ein Login meldet bei zwei Systemen an:
+Beim Start fragt die App nach **Benutzer** (Standard „Administrator“) und **Passwort** – das ist das Konto vom **Bürgerportal** (ABIS-Konsole; Zugang wie bei der Konsole nur für Administrator, Level 5/6 und ABIS-Mitglieder).
 
-- **Bürgerportal** (ABIS-Konsole): das Portal-Konto, z. B. „Administrator“. Zugang wie bei der Konsole nur für Administrator, Level 5/6 und ABIS-Mitglieder.
-- **Disponenten-Simulator** (Codes-Admin): Präfix + dasselbe Passwort. Den Präfix trägst du einmal unter **Einstellungen → Konten** ein; er bleibt nur auf dem Gerät und steht nicht im Code.
+Das Passwort für den **Disponenten-Simulator** (Codes-Admin) trägst du einmal unter **Einstellungen → Konten** ein. Es bleibt nur auf dem Gerät und wird erst benutzt, wenn der Login fürs Bürgerportal geklappt hat – dann meldet die App automatisch auch beim Spiel an. Nach 3 Fehlversuchen wartet die App immer länger. Klappt das Spiel nicht (z. B. Passwort geändert), zeigt der Reiter Spiel ein Passwortfeld.
 
-Ist das Passwort fürs Portal falsch, versucht die App das Spiel gar nicht erst (dort sperren 5 Fehlversuche den Login für 15 Minuten). Nach 3 Fehlversuchen wartet die App zusätzlich immer länger. Klappt nur eins der beiden Systeme, geht es trotzdem in die App; der andere Reiter unter Management zeigt dann ein Passwortfeld.
-
-Die Sitzungen liegen nur im Speicher: Bei jedem App-Start und nach **20 Minuten ohne Eingabe** fragt die App wieder nach dem Passwort. Ohne Internet geht es mit **Ohne Anmeldung weiter** in die App – Dateien, Sensoren und Steuerung laufen übers Heimnetz/VPN, nur die Admin-Reiter bleiben gesperrt.
+Die Sitzungen liegen nur im Speicher: Bei jedem App-Start und nach **20 Minuten ohne Eingabe** fragt die App wieder nach dem Passwort. Ohne Internet geht es mit **Ohne Anmeldung weiter** in die App – Dateien, Sensoren und Steuerung laufen übers Heimnetz/VPN, nur die Admin-Reiter bleiben gesperrt (das gespeicherte Spiel-Passwort wird dann nicht benutzt).
 
 ## Dateien vom NAS
 
