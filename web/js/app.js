@@ -1,8 +1,9 @@
-/* nDashboard — alle Seiten aus dem Terminal-Ops-Template, vorerst ohne Funktion.
- * Navigation läuft über den URL-Hash (#/home, #/files, …), damit der
+/* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
+ * die Dateien (NAS über WebDAV, siehe files.js / nas.js) und die NAS-Einstellungen.
+ * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
-  var O = window.Ops, h = React.createElement;
+  var O = window.Ops, h = React.createElement, NAS = window.NAS, FilesUI = window.NDFiles;
   var LOGO = 'img/logo.svg', LOGO_SMALL = 'img/logo-small.svg';
   function noop() {}
 
@@ -11,10 +12,11 @@
     login:        { title: 'Anmeldung', root: true },
     home:         { title: 'Start', nav: 'home', root: true },
     control:      { title: 'Steuereinheit', nav: 'home' },
-    files:        { title: 'Dateien', sub: '/root/archiv/standort-alpha', nav: 'files', root: true },
+    files:        { title: 'Dateien', nav: 'files', root: true },
+    file:         { title: 'Datei', nav: 'files' },
     sensors:      { title: 'Bewegungsmelder', sub: '48 Sensoren online', nav: 'sec', root: true },
     security:     { title: 'Sicherheit', nav: 'sec', root: true },
-    banking:      { title: 'Konten', sub: 'Hauptkonto · •••• 4021', nav: 'more', root: true },
+    banking:      { title: 'Konten', sub: 'Nicht verfügbar', nav: 'more', root: true },
     management:   { title: 'Management', sub: 'Q4 · 2026', nav: 'more', root: true },
     news:         { title: 'Bulletin', nav: 'more', root: true },
     chat:         { title: 'Chat', nav: 'chat', root: true },
@@ -23,7 +25,7 @@
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
-    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'], ['banking', 'bank', 'Banking'],
+    ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit', '2'], ['banking', 'bank', 'Banking', 'N/V'],
     ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', '5']
   ];
   var BOTTOM = [
@@ -33,9 +35,11 @@
   ];
   var BOTTOM_TARGET = { home: 'home', files: 'files', sec: 'security', chat: 'chat' };
 
-  function currentPage() {
-    var id = (location.hash || '').replace(/^#\/?/, '');
-    return PAGES[id] ? id : 'login';
+  function currentRoute() {
+    var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
+    var id = q < 0 ? raw : raw.slice(0, q);
+    var params = new URLSearchParams(q < 0 ? '' : raw.slice(q + 1));
+    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, '') };
   }
   function go(id) { location.hash = '#/' + id; }
   function back() { if (history.length > 1) history.back(); else go('home'); }
@@ -66,6 +70,13 @@
       h(O.ListItem, { icon: 'user', title: 'Operator 2231', subtitle: 'Freigabe L3' }),
       h(O.Button, { variant: 'ghost', icon: 'settings', onClick: function () { props.onNavigate('settings'); } }, 'Einstellungen'),
       h(O.Button, { variant: 'ghost', icon: 'lock', onClick: function () { props.onNavigate('login'); } }, 'Abmelden'));
+  }
+
+  /** Platzhalter für Bereiche, die (noch) nicht angebunden sind. */
+  function Unavailable(props) {
+    return h(O.Panel, { key: props.k, variant: 'outlined', mutedCorners: true, title: props.title, icon: props.icon },
+      h(O.Status, { tone: 'neutral' }, 'Nicht verfügbar'),
+      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, props.text));
   }
 
   /* ---------- Seiten ---------- */
@@ -118,22 +129,6 @@
     ];
   }
 
-  function Files() {
-    return [
-      h('div', { key: 's', className: 'op-row', style: { flexWrap: 'nowrap' } },
-        h('div', { style: { flex: 1 } }, h(O.TextField, { placeholder: 'Dateien suchen…', 'aria-label': 'Suchen' })),
-        h(O.Button, { icon: 'upload', 'aria-label': 'Hochladen' })),
-      h(O.Tabs, { key: 't', items: [{ id: 'a', label: 'Alle' }, { id: 's', label: 'Geteilt' }, { id: 'r', label: 'Gesperrt' }, { id: 'd', label: 'Downloads' }] }),
-      h('div', { key: 'l' },
-        h(O.ListItem, { icon: 'folder', title: 'berichte', subtitle: '14 Dateien · 2026-10-25', onClick: noop }),
-        h(O.ListItem, { icon: 'file', title: 'lageplan.svg', subtitle: '412 KB · 2026-10-21', end: h(O.Badge, { tone: 'neutral' }, 'L1'), onClick: noop }),
-        h(O.ListItem, { icon: 'file', title: 'vorfall-0427.pdf', subtitle: '2.1 MB · 2026-10-24', end: h(O.Badge, { tone: 'danger' }, 'L4'), selected: true, onClick: noop }),
-        h(O.ListItem, { icon: 'file', title: 'sensor-export.csv', subtitle: '88 KB · 2026-10-25', end: h(O.Badge, { tone: 'neutral' }, 'L2'), onClick: noop }),
-        h(O.ListItem, { icon: 'camera', title: 'kamera-07.mp4', subtitle: '640 MB · 2026-10-26', end: h(O.Badge, { tone: 'warn' }, 'L3'), onClick: noop })),
-      h(O.ProgressBar, { key: 'p', label: 'Speicher', value: .72, valueText: '72% · 280 GB frei' })
-    ];
-  }
-
   function Sensors() {
     return [
       h(O.Alert, { key: 'a', tone: 'danger', title: 'Nordkorridor' }, 'Ungeplante Bewegung um 01:27.'),
@@ -158,10 +153,7 @@
             h(O.Status, { tone: 'ok' }, 'Keine aktiven Vorfälle')),
           h(O.RadarChart, { size: 110, values: [.3, .2, .6, .25, .35, .2] }))),
       h('div', { key: 's', className: 'g2' }, h(O.StatTile, { label: 'Personal', value: '448' }), h(O.StatTile, { label: 'Sicherheitsindex', value: '78', unit: '%' })),
-      h('div', { key: 'c', className: 'g2 cams-desktop' }, ['CAM-01 · Lobby', 'CAM-07 · Nord', 'CAM-12 · Tor 16', 'CAM-14 · Server'].map(function (n, i) {
-        return h(O.Panel, { key: n, variant: 'outlined', mutedCorners: i !== 1, glow: i === 1, className: 'cam' },
-          h('span', { className: 'op-mono', style: { fontSize: 10 } }, n), i === 1 ? h(O.Badge, { solid: true }, 'Rec') : null);
-      })),
+      h(Unavailable, { key: 'c', title: 'Kameras', icon: 'camera', text: 'Die Kameraansicht ist in dieser Version nicht verfügbar.' }),
       h(O.Panel, { key: 'l', variant: 'outlined', mutedCorners: true, title: 'Ereignisprotokoll' },
         h(O.EventLog, { rail: true, items: [{ text: 'Alle Systeme betriebsbereit', time: '01:26' }, { text: 'Zugang an Tor 16 verweigert', time: '01:25', tone: 'warn' }] })),
       h(O.Button, { key: 'b', variant: 'danger', icon: 'lock' }, 'Lockdown einleiten')
@@ -169,20 +161,7 @@
   }
 
   function Banking() {
-    return [
-      h(O.Panel, { key: 'p', variant: 'framed' },
-        h('div', { className: 'op-label' }, 'Kontostand'),
-        h('div', { style: { fontSize: 36, lineHeight: '40px', fontWeight: 500, marginTop: 4 } }, '12.480,20', h('span', { style: { fontSize: 18 } }, ' €')),
-        h('div', { className: 'op-mono op-tone-ok', style: { fontSize: 12, marginTop: 4 } }, '▲ 3,2 % diesen Monat'),
-        h('div', { style: { marginTop: 12 } }, h(O.AreaChart, { data: [8.1, 8.4, 8.0, 9.2, 9.6, 9.1, 10.4, 10.9, 10.2, 11.3, 11.9, 12.48], min: 6, max: 14, height: 100, format: function (v) { return v.toFixed(0) + 'k'; } }))),
-      h('div', { key: 'b', className: 'g3' }, h(O.Button, { icon: 'send' }, 'Senden'), h(O.Button, { variant: 'outline', icon: 'download' }, 'Anfordern'), h(O.Button, { variant: 'outline', icon: 'card' }, 'Karten')),
-      h('div', { key: 'h', className: 'op-panel-head', style: { margin: '4px 0 -8px' } }, 'Umsätze'),
-      h('div', { key: 'l' },
-        h(O.ListItem, { icon: 'download', title: 'Gehalt', subtitle: '2026-10-25 · Einnahme', meta: h('span', { className: 'op-tone-ok' }, '+ 4.200,00 €') }),
-        h(O.ListItem, { icon: 'wallet', title: 'Supermarkt', subtitle: '2026-10-24 · Lebensmittel', meta: '− 84,30 €' }),
-        h(O.ListItem, { icon: 'power', title: 'Strom', subtitle: '2026-10-22 · Nebenkosten', meta: '− 96,00 €' }),
-        h(O.ListItem, { icon: 'bank', title: 'Übertrag auf Sparkonto', subtitle: '2026-10-20 · Sparen', meta: '− 500,00 €' }))
-    ];
+    return h(Unavailable, { title: 'Banking', icon: 'bank', text: 'Konten und Umsätze sind in dieser Version nicht verfügbar.' });
   }
 
   function Management() {
@@ -242,29 +221,63 @@
     }));
   }
 
+  function NasSettings() {
+    var cfg = NAS.config() || {};
+    var url = React.useState(cfg.url || 'http://'), user = React.useState(cfg.user || ''), pass = React.useState(cfg.pass || '');
+    var state = React.useState(null);
+    function values() { return { url: url[0].trim().replace(/\/+$/, ''), user: user[0].trim(), pass: pass[0] }; }
+    function test(e) {
+      e.preventDefault();
+      var v = values();
+      if (!/^https?:\/\/[^/]+/.test(v.url)) return state[1]({ tone: 'danger', text: 'Adresse muss mit http:// oder https:// beginnen.' });
+      var previous = NAS.config();
+      NAS.save(v);
+      state[1]({ tone: 'info', text: 'Verbinde …' });
+      NAS.list('/').then(function (d) {
+        state[1]({ tone: 'ok', text: 'Verbunden · ' + d.items.length + ' Einträge im Hauptordner. Gespeichert.' });
+      }, function (err) {
+        if (previous) NAS.save(previous);
+        state[1]({ tone: 'danger', text: err.message + ' Nicht gespeichert.' });
+      });
+    }
+    return h(O.Panel, { key: 'nas', variant: 'framed', title: 'NAS-Verbindung', icon: 'folder' },
+      h('form', { className: 'op-col', style: { gap: 14 }, onSubmit: test },
+        h(O.TextField, { label: 'Adresse', value: url[0], onChange: function (e) { url[1](e.target.value); }, placeholder: 'http://192.168.1.42:5005', inputMode: 'url', autoComplete: 'off', spellCheck: false,
+          hint: 'Wird von nas-server.py beim Start angezeigt.' }),
+        h(O.TextField, { label: 'Benutzer', value: user[0], onChange: function (e) { user[1](e.target.value); }, autoComplete: 'username' }),
+        h(O.TextField, { label: 'Passwort', type: 'password', value: pass[0], onChange: function (e) { pass[1](e.target.value); }, autoComplete: 'current-password' }),
+        h('div', { className: 'op-row' },
+          h(O.Button, { type: 'submit', icon: 'signal' }, 'Verbinden & speichern'),
+          NAS.configured() ? h(O.Button, { variant: 'ghost', onClick: function () { location.hash = '#/files'; } }, 'Zu den Dateien') : null),
+        state[0] ? h(O.Status, { tone: state[0].tone }, state[0].text) : null,
+        h('div', { className: 'op-field-hint' }, 'Die Zugangsdaten werden nur auf diesem Gerät gespeichert.')));
+  }
+
   function Settings() {
     return [
-      h(O.Panel, { key: 'a', title: 'Konto', icon: 'user' },
-        h('div', { className: 'op-col', style: { gap: 14 } }, h(O.TextField, { label: 'Name', defaultValue: 'Operator 2231' }), h(O.TextField, { label: 'Freigabe', defaultValue: 'L3', disabled: true }))),
+      h(NasSettings, { key: 'nas' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
-        h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { label: 'Gerät merken' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
+        h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
       h(O.Panel, { key: 'c', variant: 'outlined', mutedCorners: true, title: 'Info' },
-        h(O.InfoList, { items: [{ label: 'Version', value: '0.1.0' }, { label: 'Design', value: 'Terminal Ops' }] }))
+        h(O.InfoList, { items: [{ label: 'Version', value: '0.2.0' }, { label: 'Design', value: 'Terminal Ops' }] }))
     ];
   }
 
-  var RENDER = { home: Home, control: Control, files: Files, sensors: Sensors, security: Security, banking: Banking,
+  function FilesPage(props) { return h(FilesUI.Browser, { path: props.path }); }
+  function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
+
+  var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security, banking: Banking,
     management: Management, news: News, chat: Chat, conversation: Conversation, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
   function App() {
-    var pg = React.useState(currentPage()), page = pg[0];
+    var rt = React.useState(currentRoute()), page = rt[0].page, path = rt[0].path;
     var dr = React.useState(false), drawerOpen = dr[0];
     var desktop = useMedia('(min-width: 900px)');
     var bodyRef = React.useRef(null);
 
     React.useEffect(function () {
-      function on() { pg[1](currentPage()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
+      function on() { rt[1](currentRoute()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
       window.addEventListener('hashchange', on);
       return function () { window.removeEventListener('hashchange', on); };
     }, []);
@@ -272,15 +285,17 @@
     if (page === 'login') return h('div', { className: 'app op-compact' }, h(Login));
 
     var meta = PAGES[page];
-    var drawer = h(Drawer, { page: page, onNavigate: go });
-    var showMenu = meta.root && !desktop;
+    var isFiles = page === 'files' || page === 'file';
+    var root = page === 'files' ? path === '/' : meta.root;
+    var drawer = h(Drawer, { page: isFiles ? 'files' : page, onNavigate: go });
+    var showMenu = root && !desktop;
     var bar = h(O.AppBar, {
       onMenu: showMenu ? function () { dr[1](true); } : undefined,
-      onBack: !meta.root ? back : undefined,
+      onBack: !root ? (page === 'files' ? function () { location.hash = '#/files?p=' + encodeURIComponent(NAS.parent(path)); } : back) : undefined,
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
-      title: page === 'home' ? (desktop ? 'Start' : null) : meta.title,
-      subtitle: meta.sub,
-      end: page === 'conversation' ? IconBtn('more', 'Mehr') : page === 'control' ? IconBtn('close', 'Schließen', back) : IconBtn('alert', 'Meldungen')
+      title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : meta.title,
+      subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : meta.sub,
+      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : page === 'conversation' ? IconBtn('more', 'Mehr') : page === 'control' ? IconBtn('close', 'Schließen', back) : IconBtn('alert', 'Meldungen')
     });
     var footer = page === 'conversation'
       ? h('div', { className: 'app-footer' }, h(O.CommandInput, { showPrompt: false, placeholder: 'Nachricht schreiben…', label: 'Nachricht', onSubmit: noop }))
@@ -290,8 +305,9 @@
       desktop ? drawer : null,
       h('div', { className: 'app-main' },
         bar,
-        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' }, h(RENDER[page]))),
+        h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(RENDER[page], { path: path }))),
         footer),
+      h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);
   }
 
