@@ -18,7 +18,7 @@ import gi  # noqa: E402
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("WebKit", "6.0")
-from gi.repository import Gio, Gtk, WebKit  # noqa: E402
+from gi.repository import Gio, GLib, Gtk, WebKit  # noqa: E402
 
 APP_ID = "de.nikesieg4.nDashboard"
 WEB_DIR = os.environ.get("NDASHBOARD_WEB_DIR", "/app/share/ndashboard/web")
@@ -33,8 +33,26 @@ class Window(Gtk.ApplicationWindow):
         view = WebKit.WebView()
         view.get_settings().set_allow_file_access_from_file_urls(True)
         view.set_background_color(self._rgba("#121212"))
+        view.get_network_session().connect("download-started", self._on_download)
         view.load_uri(Gio.File.new_for_path(os.path.join(WEB_DIR, "index.html")).get_uri())
         self.set_child(view)
+
+    def _on_download(self, _session, download):
+        """Downloads aus der App (z. B. Dateien vom NAS) landen im Download-Ordner."""
+        download.connect("decide-destination", self._decide_destination)
+
+    @staticmethod
+    def _decide_destination(download, suggested):
+        folder = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or GLib.get_home_dir()
+        os.makedirs(folder, exist_ok=True)
+        name = os.path.basename(suggested) or "download"
+        stem, ext = os.path.splitext(name)
+        target, n = os.path.join(folder, name), 1
+        while os.path.exists(target):  # nichts überschreiben: datei (1).txt, datei (2).txt, …
+            target = os.path.join(folder, "%s (%d)%s" % (stem, n, ext))
+            n += 1
+        download.set_destination(target)
+        return True
 
     @staticmethod
     def _rgba(hex_color):

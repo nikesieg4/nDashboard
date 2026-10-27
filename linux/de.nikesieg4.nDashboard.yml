@@ -8,6 +8,10 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --device=dri
+  # NAS im Heimnetz erreichen
+  - --share=network
+  # heruntergeladene Dateien im Download-Ordner speichern
+  - --filesystem=xdg-download
 modules:
   - name: ndashboard
     buildsystem: simple
