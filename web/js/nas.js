@@ -9,15 +9,16 @@
   var AUDIO_EXT = ['mp3', 'ogg', 'wav', 'flac', 'm4a'];
 
   function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; }
+    try { return window.NDNet.migrate(JSON.parse(localStorage.getItem(KEY)) || null); } catch (e) { return null; }
   }
   function save(cfg) {
     try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) { /* ohne Speicher nur für diese Sitzung */ }
     current = cfg;
   }
   var current = load();
+  window.NDNet.register(function () { return current; });
 
-  function base() { return current.url.replace(/\/+$/, ''); }
+  function base() { return window.NDNet.pick(current); }
   function headers(extra) {
     var h = Object.assign({}, extra || {});
     if (current.user) h.Authorization = 'Basic ' + btoa(unescape(encodeURIComponent(current.user + ':' + (current.pass || ''))));
@@ -41,10 +42,10 @@
     throw new NasError(res.status, msg);
   }
   function request(method, path, opts) {
-    if (!current || !current.url) return Promise.reject(new NasError(0, 'Kein NAS eingerichtet.'));
+    if (!current || !(current.url || current.urlVpn)) return Promise.reject(new NasError(0, 'Kein NAS eingerichtet.'));
     opts = opts || {};
     return fetch(url(path), { method: method, headers: headers(opts.headers), body: opts.body, cache: 'no-store' })
-      .catch(function () { throw new NasError(0, 'NAS nicht erreichbar. Läuft nas-server.py und ist das Gerät im selben Netz?'); })
+      .catch(function () { throw new NasError(0, 'NAS nicht erreichbar (' + base() + ', Netz: ' + window.NDNet.label(window.NDNet.profile()) + '). Läuft nas-server.py? Unterwegs: VPN eingeschaltet?'); })
       .then(function (res) { if (!res.ok && res.status !== 207) fail(res); return res; });
   }
 
@@ -157,7 +158,7 @@
   function validName(name) { return !!name && name.indexOf('/') < 0 && name !== '.' && name !== '..'; }
 
   window.NAS = {
-    config: function () { return current; }, configured: function () { return !!(current && current.url); }, save: save,
+    config: function () { return current; }, configured: function () { return !!(current && (current.url || current.urlVpn)); }, save: save,
     list: list, readText: readText, readBlob: readBlob, writeText: writeText, mkdir: mkdir, remove: remove, move: move,
     upload: upload, download: download, kind: kind, ext: ext,
     formatSize: formatSize, formatDate: formatDate, parent: parent, join: join, validName: validName

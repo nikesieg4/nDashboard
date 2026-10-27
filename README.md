@@ -46,6 +46,15 @@ Auf der Seite **Management** legst du eigene Ziele an, z. B. „Server“, und f
 
 Die Ziele werden auf dem NAS in `/.ndashboard/ziele.json` gespeichert, damit Handy und PC dieselben sehen. Ohne NAS-Verbindung bleiben sie nur auf dem jeweiligen Gerät.
 
+## Zuhause und unterwegs (WLAN / VPN)
+
+Für den Zugriff von unterwegs empfiehlt sich [Tailscale](https://tailscale.com) auf PC, NAS und Handy (kein Port im Router freigeben!). In den Einstellungen hat jede Verbindung dann zwei Adressen: **im WLAN** (`192.168.…`) und **über VPN** (Tailscale, `100.…`). Oben unter **Netzwerk** wählst du:
+
+- **Automatisch** (Standard): Beim Start und wenn die App wieder in den Vordergrund kommt, prüft sie kurz, ob eine WLAN-Adresse antwortet – dann WLAN, sonst VPN. So kannst du Tailscale zuhause ausschalten.
+- **WLAN** oder **VPN**: fest eingestellt.
+
+Im Menü steht jederzeit, welches Netz gerade benutzt wird. Ältere Einstellungen mit einer Tailscale-Adresse werden automatisch ins VPN-Feld übernommen.
+
 ## Installieren und Updates
 
 Jeder Push auf `main` veröffentlicht automatisch eine neue Version (`.github/workflows/build.yml`):
@@ -102,6 +111,7 @@ Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Se
 web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen geladen
   js/ops.js     Komponenten des Terminal-Ops-Design-Systems (window.Ops)
   js/app.js     Alle Seiten + Navigation
+  js/network.js WLAN/VPN-Umschaltung (welche Adresse benutzt wird)
   js/nas.js     WebDAV-Client fürs NAS
   js/files.js   Seiten Dateien und Datei (Editor/Vorschau)
   js/services.js Verbindungen zu den Agenten (PC, NAS)
