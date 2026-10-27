@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) und das **Management** (eigene Ziele und Sparpläne); die übrigen Seiten zeigen noch Beispieldaten. Kameras sind als „Nicht verfügbar“ markiert.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs) das **Management** (eigene Ziele und Sparpläne) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News und Chat zeigen noch Beispieldaten, Sicherheit ist noch mit nichts verbunden.
 
 ## Dateien vom NAS
 
@@ -35,6 +35,10 @@ Die Seite **Sensoren** zeigt, was auf deinem Linux-PC passiert. Dafür läuft do
 - Warnungen bei hoher Temperatur oder vollem Speicher
 
 Einrichtung Schritt für Schritt: [PC-Agent einrichten](tools/PC-AGENT.md). In der App unter **Einstellungen → PC-Agent** Adresse (Standard-Port 5006), Benutzer und Passwort eintragen.
+
+## Steuereinheit: PC und NAS steuern
+
+Auf der Seite **Steuereinheit** siehst du, ob PC und NAS online sind, und kannst sie **neu starten**, **herunterfahren** oder in den **Ruhezustand** schicken – jeweils mit Rückfrage. Dafür läuft `pc-agent.py` auf beiden Geräten mit `--allow-control`. Es gibt bewusst keine freie Kommandozeile, nur diese festen Aktionen. Einrichtung: [PC-AGENT.md, Abschnitte 6 und 7](tools/PC-AGENT.md).
 
 ## Management: Ziele und Sparpläne
 
@@ -78,19 +82,19 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 |---|---|---|
 | Anmeldung | `#/login` | LoginScreen |
 | Start / Terminal | `#/home` | TerminalScreen |
-| Steuereinheit | `#/control` | ControlUnitScreen |
+| Steuereinheit (PC & NAS) | `#/control` | ControlUnitScreen |
 | Dateien (NAS) | `#/files?p=/ordner` | FileManagerScreen |
 | Datei (Editor/Vorschau) | `#/file?p=/ordner/datei.txt` | FileManagerScreen |
 | Sensoren (PC-Monitor) | `#/sensors` | MotionSensorScreen |
-| Sicherheit | `#/security` | SecurityScreen |
+| Sicherheit (nicht verbunden) | `#/security` | SecurityScreen |
 | Management (Ziele) | `#/management` | ManagementScreen |
 | Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
 | Bulletin (News) | `#/news` | NewsScreen |
 | Chat-Kanäle | `#/chat` | ChatScreen |
 | Unterhaltung | `#/conversation` | ChatScreen |
-| Einstellungen (NAS, PC-Agent, Updates) | `#/settings` | Navigations-Drawer |
+| Einstellungen (NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
-Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
+Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Chat, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
 ## Aufbau
 
@@ -100,9 +104,10 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/app.js     Alle Seiten + Navigation
   js/nas.js     WebDAV-Client fürs NAS
   js/files.js   Seiten Dateien und Datei (Editor/Vorschau)
-  js/services.js Verbindung zum PC-Agenten
+  js/services.js Verbindungen zu den Agenten (PC, NAS)
   js/monitor.js Seite Sensoren
   js/goals.js   Seiten Management (Ziele) und Ziel
+  js/control.js Seite Steuereinheit
   js/update.js  Prüft GitHub Releases auf neue Versionen
   js/version.js Versionsnummer (setzt GitHub Actions beim Bauen)
   css/          Design-Tokens, Komponenten-CSS, App-Layout, lokale Schriften
