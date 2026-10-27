@@ -3,7 +3,10 @@ package de.nikesieg4.ndashboard;
 import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -17,6 +20,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import java.io.File;
+
 /** Hülle um die Weboberfläche aus assets/ (gemeinsamer Ordner web/). */
 public class MainActivity extends Activity {
 
@@ -24,6 +29,32 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
+    private volatile long updateDownloadId = -1;
+
+    /** Ist die neue APK heruntergeladen, den Installieren-Dialog von Android öffnen. */
+    private final BroadcastReceiver downloadDone = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            if (id == -1 || id != updateDownloadId) {
+                return;
+            }
+            updateDownloadId = -1;
+            Uri apk = ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).getUriForDownloadedFile(id);
+            if (apk == null) {
+                Toast.makeText(MainActivity.this, "Update-Download fehlgeschlagen", Toast.LENGTH_LONG).show();
+                return;
+            }
+            Intent install = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(apk, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(install);
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(MainActivity.this, "Kein Installer gefunden", Toast.LENGTH_LONG).show();
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,11 +73,25 @@ public class MainActivity extends Activity {
 
         setContentView(webView);
 
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Die Meldung kommt vom System-DownloadManager, also von außerhalb der App
+            registerReceiver(downloadDone, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(downloadDone, filter);
+        }
+
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
         } else {
             webView.loadUrl("file:///android_asset/index.html");
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        unregisterReceiver(downloadDone);
+        super.onDestroy();
     }
 
     @Override
@@ -134,6 +179,28 @@ public class MainActivity extends Activity {
                 }
                 ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, safeName + " wird in Downloads gespeichert", Toast.LENGTH_SHORT).show());
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /** Lädt die neue APK von GitHub; danach öffnet {@link #downloadDone} den Installieren-Dialog. */
+        @JavascriptInterface
+        public boolean installUpdate(String url, String versionName) {
+            try {
+                String name = "nDashboard-" + versionName.replaceAll("[^0-9A-Za-z._-]", "") + ".apk";
+                File old = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), name);
+                if (old.exists()) {
+                    old.delete();
+                }
+                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                        .setTitle("nDashboard " + versionName)
+                        .setMimeType("application/vnd.android.package-archive")
+                        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+                        .setDestinationInExternalFilesDir(MainActivity.this, Environment.DIRECTORY_DOWNLOADS, name);
+                updateDownloadId = ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Update wird heruntergeladen …", Toast.LENGTH_SHORT).show());
                 return true;
             } catch (Exception e) {
                 return false;

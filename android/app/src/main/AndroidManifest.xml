@@ -3,6 +3,8 @@
 
     <!-- Zugriff aufs NAS im Heimnetz (nas-server.py spricht unverschlüsseltes HTTP) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Updates von GitHub installieren (Android fragt beim ersten Mal nach) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="true"
