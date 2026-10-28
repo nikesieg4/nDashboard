@@ -12,3 +12,7 @@ linux/.flatpak-builder/
 
 # Python
 __pycache__/
+
+# Windows/macOS (Electron)
+desktop/node_modules/
+desktop/dist/
