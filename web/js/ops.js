@@ -37,7 +37,9 @@
     home: 'M3 11l9-7 9 7 M5 10v10h14V10',
     plus: 'M12 5v14 M5 12h14',
     more: 'M5 11h2v2H5z M11 11h2v2h-2z M17 11h2v2h-2z',
-    card: 'M3 6h18v12H3z M3 10h18 M6 15h4'
+    card: 'M3 6h18v12H3z M3 10h18 M6 15h4',
+    calendar: 'M4 6h16v14H4z M4 10h16 M8 3v5 M16 3v5 M8 14h3v3H8z',
+    bell: 'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z M10 20.5a2 2 0 0 0 4 0'
   };
   function Icon(props) {
     var d = ICONS[props.name] || ICONS.grid;

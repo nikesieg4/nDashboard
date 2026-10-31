@@ -1,6 +1,8 @@
 package de.nikesieg4.ndashboard;
 
+import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationManager;
 import android.content.ContentValues;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
@@ -8,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -27,10 +30,13 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.json.JSONObject;
+
 /** Hülle um die Weboberfläche aus assets/ (gemeinsamer Ordner web/). */
 public class MainActivity extends Activity {
 
     private static final int REQUEST_FILES = 1;
+    private static final int REQUEST_NOTIFY = 2;
 
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
@@ -89,8 +95,38 @@ public class MainActivity extends Activity {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
         } else {
-            webView.loadUrl("file:///android_asset/index.html");
+            // Aus einer Benachrichtigung gestartet: gleich die passende Seite öffnen (#/calendar …)
+            String url = getIntent().getStringExtra(Notifier.EXTRA_URL);
+            webView.loadUrl("file:///android_asset/index.html" + (url != null && url.startsWith("#/") ? url : ""));
         }
+    }
+
+    /** Tipp auf eine Benachrichtigung, während die App schon läuft. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String url = intent.getStringExtra(Notifier.EXTRA_URL);
+        if (url != null && url.startsWith("#/")) {
+            webView.evaluateJavascript("location.hash = " + JSONObject.quote(url) + ";", null);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        if (requestCode != REQUEST_NOTIFY) {
+            super.onRequestPermissionsResult(requestCode, permissions, results);
+            return;
+        }
+        boolean granted = results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED;
+        webView.evaluateJavascript("window.NDNotify && NDNotify._onPermission('" + (granted ? "granted" : "denied") + "');", null);
+    }
+
+    private String notificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return "default";
+        }
+        return getSystemService(NotificationManager.class).areNotificationsEnabled() ? "granted" : "denied";
     }
 
     @Override
@@ -223,6 +259,50 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Speichern fehlgeschlagen", Toast.LENGTH_LONG).show());
                 return false;
+            }
+        }
+
+        /** Benachrichtigung sofort zeigen (Eilmeldung, PC-Warnung, Test). */
+        @JavascriptInterface
+        public void notify(String id, String title, String body, String url) {
+            Notifier.post(MainActivity.this, id, title, body, url);
+        }
+
+        /** 'granted', 'denied' oder 'default' (noch nicht gefragt) */
+        @JavascriptInterface
+        public String notificationPermission() {
+            return MainActivity.this.notificationPermission();
+        }
+
+        /** Android 13+: Systemdialog; Antwort kommt über NDNotify._onPermission. Ältere Versionen erlauben ohne Nachfrage. */
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS }, REQUEST_NOTIFY);
+                } else {
+                    webView.evaluateJavascript("window.NDNotify && NDNotify._onPermission('" + MainActivity.this.notificationPermission() + "');", null);
+                }
+            });
+        }
+
+        /** Termin-Erinnerungen planen (ersetzt die vorige Liste): [{id, at, title, body, url}, …] */
+        @JavascriptInterface
+        public void setReminders(String json) {
+            Notifier.setReminders(MainActivity.this, json);
+        }
+
+        /** Link im Browser öffnen (z. B. Artikel auf tagesschau.de). */
+        @JavascriptInterface
+        public void openUrl(String url) {
+            if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) {
+                return;
+            }
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (ActivityNotFoundException e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Kein Browser gefunden", Toast.LENGTH_SHORT).show());
             }
         }
 

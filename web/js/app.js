@@ -1,7 +1,7 @@
 /* nDashboard — alle Seiten aus dem Terminal-Ops-Template. Funktionsfähig sind bisher
  * Anmeldung (auth.js), Dateien (NAS über WebDAV, files.js / nas.js), Sensoren (PC-Agent, monitor.js),
- * Steuereinheit (control.js), Management (Ziele: goals.js, Spiel: game.js, Bürgerportal: portal.js)
- * und die Einstellungen dazu.
+ * Steuereinheit (control.js), Management (Ziele: goals.js, Spiel: game.js, Bürgerportal: portal.js),
+ * Kalender (calendar.js), News (tagesschau, news.js), Benachrichtigungen (notify.js) und die Einstellungen dazu.
  * Navigation läuft über den URL-Hash (#/home, #/files?p=/ordner, …), damit der
  * Zurück-Knopf von Android und die Browser-Historie funktionieren. */
 (function () {
@@ -23,14 +23,18 @@
     goal:         { title: 'Ziel', nav: 'more' },
     game:         { title: 'Management', sub: 'Spiel · Disponenten-Simulator', nav: 'more', root: true },
     portal:       { title: 'Management', sub: 'Bürgerportal · ABIS', nav: 'more', root: true },
-    news:         { title: 'Bulletin', nav: 'more', root: true },
-    chat:         { title: 'Chat', sub: 'Ausgeschaltet', nav: 'more', root: true },
+    calendar:     { title: 'Kalender', nav: 'more', root: true },
+    event:        { title: 'Termin', nav: 'more' },
+    news:         { title: 'News', sub: 'tagesschau', nav: 'more', root: true },
+    article:      { title: 'News', sub: 'tagesschau', nav: 'more' },
+    chat:         { title: 'Chat', sub: 'Nicht verfügbar', nav: 'more', root: true },
+    notifications: { title: 'Benachrichtigungen', nav: 'more' },
     settings:     { title: 'Einstellungen', nav: 'more' }
   };
   var DRAWER = [
     ['home', 'home', 'Start'], ['control', 'power', 'Steuereinheit'], ['files', 'folder', 'Dateien'],
     ['sensors', 'sensor', 'Sensoren'], ['security', 'shield', 'Sicherheit'],
-    ['management', 'chart', 'Management'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat']
+    ['management', 'chart', 'Management'], ['calendar', 'calendar', 'Kalender'], ['news', 'news', 'News'], ['chat', 'chat', 'Chat', 'aus']
   ];
   var BOTTOM = [
     { id: 'home', label: 'Start', icon: 'home' }, { id: 'files', label: 'Dateien', icon: 'folder' },
@@ -43,7 +47,7 @@
     var raw = (location.hash || '').replace(/^#\/?/, ''), q = raw.indexOf('?');
     var id = q < 0 ? raw : raw.slice(0, q);
     var params = new URLSearchParams(q < 0 ? '' : raw.slice(q + 1));
-    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, ''), id: params.get('id') || '', section: params.get('s') || '' };
+    return { page: PAGES[id] ? id : 'login', path: '/' + (params.get('p') || '').replace(/^\/+|\/+$/g, ''), id: params.get('id') || '', section: params.get('s') || '', query: params };
   }
   function go(id) { location.hash = '#/' + id; }
   function back() { if (history.length > 1) history.back(); else go('home'); }
@@ -130,6 +134,7 @@
     return [
       h(O.TitleBar, { key: 't', size: 'lg' }, 'Dashboard'),
       h('div', { key: 's', className: 'op-label', style: { marginTop: -8 } }, 'Deine Organisation · V. 01'),
+      h(window.NDCalendar.Upcoming, { key: 'cal' }),
       h(O.Panel, { key: 'p', variant: 'framed', style: { textAlign: 'center' } },
         h('div', { style: { fontSize: 24, lineHeight: '28px', fontWeight: 500, letterSpacing: '.08em' } }, 'DIRECT ACCESS', h('br'), 'TERMINAL'),
         h('div', { style: { marginTop: 10, color: 'var(--signal)', fontSize: 13, letterSpacing: '.08em' } }, '„help“ eingeben für weitere Informationen'),
@@ -150,26 +155,57 @@
       h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, 'Mit diesem Bereich ist noch kein Gerät verbunden.'));
   }
 
-  function News() {
+  function Chat() {
+    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Chat', icon: 'chat' },
+      h(O.Status, { tone: 'neutral' }, 'Nicht verfügbar'),
+      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, 'Chat ist momentan nicht verfügbar.'));
+  }
+
+  /** Liste hinter der Glocke (notify.js). */
+  function useNotifications() {
+    var st = React.useState(0);
+    React.useEffect(function () { return window.NDNotify.subscribe(function () { st[1](function (n) { return n + 1; }); }); }, []);
+    return window.NDNotify;
+  }
+  var SOURCE_ICON = { calendar: 'calendar', news: 'news', pc: 'sensor', app: 'bell' };
+  function Notifications() {
+    var N = useNotifications(), list = N.log();
+    React.useEffect(function () { return function () { window.NDNotify.markAllRead(); }; }, []);
     return [
-      h(O.Tabs, { key: 't', items: [{ id: 'a', label: 'Alle' }, { id: 'o', label: 'Betrieb' }, { id: 's', label: 'Sicherheit' }, { id: 'r', label: 'Forschung' }] }),
-      h(O.Panel, { key: 'b', variant: 'framed' },
-        h(O.Badge, { solid: true }, 'Eilmeldung'),
-        h('h2', { style: { fontSize: 22, lineHeight: '28px', fontWeight: 500, letterSpacing: '.03em', margin: '10px 0 6px' } }, 'Übung für die gesamte Anlage am Freitag, 14:00'),
-        h('p', { style: { color: 'var(--ink-muted)', margin: 0 } }, 'Alle Mitarbeitenden begeben sich zu ihren zugewiesenen Sammelpunkten.'),
-        h('div', { className: 'op-mono', style: { color: 'var(--ink-faint)', marginTop: 10, fontSize: 11 } }, 'Einsatzleitung · 09:00')),
-      [['Betrieb', 'Wartung in Sektor B vorzeitig abgeschlossen', '08:12'], ['Sicherheit', 'Neue Zugriffsrichtlinie für gesperrte Archive', '07:40'], ['Forschung', 'Ausbau des Sensornetzes geht in Phase zwei', 'Gestern']].map(function (n) {
-        return h(O.Panel, { key: n[1], variant: 'outlined', mutedCorners: true },
-          h('div', { className: 'op-row', style: { justifyContent: 'space-between' } }, h('span', { className: 'op-label' }, n[0]), h('span', { className: 'op-mono', style: { color: 'var(--ink-faint)', fontSize: 11 } }, n[2])),
-          h('h3', { style: { fontSize: 16, lineHeight: '22px', fontWeight: 600, letterSpacing: '.03em', margin: '6px 0 0' } }, n[1]));
-      })
+      h('div', { key: 'tb', className: 'op-row', style: { justifyContent: 'space-between' } },
+        h(O.Status, { tone: N.config().enabled ? 'ok' : 'neutral' }, N.config().enabled ? 'Benachrichtigungen an' : 'Benachrichtigungen aus – nur diese Liste'),
+        h('div', { className: 'op-row' },
+          h(O.Button, { variant: 'ghost', size: 'sm', icon: 'settings', onClick: function () { go('settings'); } }, 'Einstellungen'),
+          list.length ? h(O.Button, { variant: 'ghost', size: 'sm', icon: 'close', onClick: N.clearLog }, 'Leeren') : null)),
+      list.length ? h(O.Panel, { key: 'l', variant: 'outlined', mutedCorners: true },
+        h('div', { className: 'file-list' }, list.map(function (n) {
+          return h(O.ListItem, { key: n.id, icon: SOURCE_ICON[n.source] || 'bell', title: n.title, subtitle: n.body || null, className: n.read ? '' : 'notice-unread',
+            meta: new Date(n.ts).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            onClick: n.url ? function () { location.hash = n.url; } : undefined });
+        }))) : h('div', { key: 'e', className: 'hint' }, 'Noch keine Benachrichtigungen.')
     ];
   }
 
-  function Chat() {
-    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Chat', icon: 'chat' },
-      h(O.Status, { tone: 'neutral' }, 'Ausgeschaltet'),
-      h('p', { style: { margin: '8px 0 0', color: 'var(--ink-muted)' } }, 'Der Chat ist in dieser Version ausgeschaltet.'));
+  function NotifySettings() {
+    var N = useNotifications(), c = N.config(), perm = N.permission(), msg = React.useState(null);
+    function enable(on) {
+      if (!on) return N.setConfig({ enabled: false });
+      N.requestPermission().then(function (p) {
+        if (p === 'granted') { N.setConfig({ enabled: true }); msg[1](null); }
+        else msg[1](p === 'unsupported' ? 'Dieses Gerät unterstützt keine Benachrichtigungen.' : 'Benachrichtigungen wurden nicht erlaubt. Du kannst sie in den Systemeinstellungen für nDashboard freigeben.');
+      });
+    }
+    return h(O.Panel, { variant: 'outlined', mutedCorners: true, title: 'Benachrichtigungen', icon: 'bell' },
+      h('div', { className: 'op-col', style: { gap: 12 } },
+        h(O.Toggle, { label: 'Benachrichtigungen', checked: c.enabled && perm === 'granted', onChange: enable }),
+        h(O.Toggle, { label: 'Kalender-Erinnerungen', checked: c.calendar, disabled: !c.enabled, onChange: function (v) { N.setConfig({ calendar: v }); } }),
+        h(O.Toggle, { label: 'tagesschau-Eilmeldungen', checked: c.news, disabled: !c.enabled, onChange: function (v) { N.setConfig({ news: v }); } }),
+        h(O.Toggle, { label: 'Warnungen vom PC (Temperatur, Abstürze, Anmeldungen)', checked: c.pc, disabled: !c.enabled, onChange: function (v) { N.setConfig({ pc: v }); } }),
+        msg[0] ? h(O.Status, { tone: 'warn' }, msg[0]) : null,
+        h('div', { className: 'op-field-hint' }, N.background
+          ? 'Termin-Erinnerungen kommen auch, wenn die App geschlossen ist. Eilmeldungen und PC-Warnungen nur, solange die App läuft.'
+          : 'Benachrichtigungen kommen, solange die App geöffnet ist (auch im Hintergrund). Auf dem Handy erinnert Android an Termine auch bei geschlossener App.'),
+        h('div', { className: 'op-row' }, h(O.Button, { variant: 'outline', size: 'sm', icon: 'bell', disabled: !c.enabled || perm !== 'granted', onClick: N.test }, 'Test senden'))));
   }
 
   /** Netzwerk-Profil abonnieren (siehe network.js). */
@@ -324,13 +360,14 @@
   function Settings() {
     return [
       h(AccountSettings, { key: 'acc' }),
+      h(NotifySettings, { key: 'notify' }),
       h(NetworkSettings, { key: 'net' }),
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
       h(NasAgentSettings, { key: 'nasagent' }),
       h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
-        h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Benachrichtigungen' }), h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
+        h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),
       h(O.Panel, { key: 'c', variant: 'outlined', mutedCorners: true, title: 'Info' },
         h(O.InfoList, { items: [{ label: 'Version', value: window.ND_VERSION.name }, { label: 'Design', value: 'Terminal Ops' }] }))
     ];
@@ -349,8 +386,16 @@
   function Goal(props) { return h(window.NDGoals.Detail, { id: props.id }); }
   function FilePage(props) { return h(FilesUI.Viewer, { path: props.path }); }
 
-  var RENDER = { home: Home, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
-    management: Management, goal: Goal, game: Game, portal: Portal, news: News, chat: Chat, settings: Settings };
+  function CalendarPage(props) { return h(window.NDCalendar.Calendar, { view: props.query.get('v'), date: props.query.get('d') }); }
+  function EventPage(props) {
+    var q = props.query;
+    return h(window.NDCalendar.EventEditor, { key: q.toString(), id: q.get('id'), occurrence: q.get('o'), date: q.get('d'), time: q.get('t'), allDay: q.get('allday') === '1' });
+  }
+  function NewsPage() { return h(window.NDNews.News); }
+  function ArticlePage(props) { return h(window.NDNews.Article, { url: props.query.get('u') }); }
+
+  var RENDER = { home: Home, calendar: CalendarPage, event: EventPage, article: ArticlePage, notifications: Notifications, control: Control, files: FilesPage, file: FilePage, sensors: Sensors, security: Security,
+    management: Management, goal: Goal, game: Game, portal: Portal, news: NewsPage, chat: Chat, settings: Settings };
 
   /* ---------- App-Hülle ---------- */
   function App() {
@@ -364,6 +409,10 @@
     React.useEffect(function () { if (window.ND_VERSION.code > 0) window.NDUpdate.check(false); }, []);
     React.useEffect(function () { if (window.NDNet.mode() === 'auto') window.NDNet.detect(); }, []);
     React.useEffect(function () { if (auth.unlocked && page === 'login') go('home'); }, [auth.unlocked, page]);
+    // Erinnerungen und Abfragen erst, wenn feststeht, welche NAS-/PC-Adresse gilt
+    var netReady = net.mode !== 'auto' || net.detected;
+    React.useEffect(function () { if (netReady) window.NDNotify.start(); }, [netReady, net.profile]);
+    var notes = useNotifications(), unread = notes.unread();
     React.useEffect(function () {
       function on() { rt[1](currentRoute()); dr[1](false); if (bodyRef.current) bodyRef.current.scrollTop = 0; }
       window.addEventListener('hashchange', on);
@@ -376,7 +425,7 @@
     var meta = PAGES[page];
     var isFiles = page === 'files' || page === 'file';
     var root = page === 'files' ? path === '/' : page === 'portal' ? !routeId : meta.root;
-    var drawer = h(Drawer, { page: isFiles ? 'files' : page === 'goal' || page === 'game' || page === 'portal' ? 'management' : page, onNavigate: go });
+    var drawer = h(Drawer, { page: isFiles ? 'files' : page === 'goal' || page === 'game' || page === 'portal' ? 'management' : page === 'event' ? 'calendar' : page === 'article' ? 'news' : page, onNavigate: go });
     var showMenu = root && !desktop;
     var bar = h(O.AppBar, {
       onMenu: showMenu ? function () { dr[1](true); } : undefined,
@@ -385,7 +434,9 @@
       logo: page === 'home' && !desktop ? h(O.LogoSlot, { src: LOGO_SMALL, alt: 'nDashboard', width: 36, height: 36 }) : null,
       title: page === 'home' ? (desktop ? 'Start' : null) : page === 'file' ? path.slice(path.lastIndexOf('/') + 1) : page === 'goal' ? window.NDGoals.title(routeId) : meta.title,
       subtitle: isFiles ? (page === 'file' ? NAS.parent(path) : path) : page === 'portal' ? 'Bürgerportal · ' + window.NDPortal.title(section, routeId) : meta.sub,
-      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); }) : IconBtn('alert', 'Meldungen')
+      end: isFiles ? IconBtn('settings', 'NAS-Einstellungen', function () { go('settings'); })
+        : h('button', { type: 'button', className: 'op-appbar-btn bell-btn', 'aria-label': 'Benachrichtigungen' + (unread ? ' (' + unread + ' neu)' : ''), onClick: function () { go('notifications'); } },
+          h(O.Icon, { name: 'bell' }), unread ? h('span', { className: 'bell-badge' }, unread > 9 ? '9+' : unread) : null)
     });
     var footer = h(O.BottomNav, { value: meta.nav, items: BOTTOM, onChange: function (id) { if (id === 'more') dr[1](true); else go(BOTTOM_TARGET[id]); } });
 
@@ -396,7 +447,7 @@
         h('main', { className: 'app-body op-grid-bg', ref: bodyRef }, h('div', { className: 'app-body-inner' + (page === 'file' ? ' app-body-fill' : '') }, h(UpdateBanner),
           // Seiten mit Verbindungen erst nach der Netzerkennung laden und bei einem Netzwechsel neu aufbauen
           net.mode === 'auto' && !net.detected && page !== 'settings' ? h('div', { className: 'hint', key: 'net' }, 'Prüfe Netzwerk …')
-            : h(RENDER[page], { key: net.profile, path: path, id: routeId, section: section }))),
+            : h(RENDER[page], { key: net.profile, path: path, id: routeId, section: section, query: rt[0].query }))),
         footer),
       h(FilesUI.Toast),
       drawerOpen && !desktop ? h('div', { className: 'drawer-scrim' }, drawer, h('button', { className: 'drawer-scrim-dim', 'aria-label': 'Menü schließen', onClick: function () { dr[1](false); } })) : null);

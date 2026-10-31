@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) und die **Steuereinheit** (PC und NAS neu starten/herunterfahren); News zeigt noch Beispieldaten, Sicherheit ist noch mit nichts verbunden, Chat ist ausgeschaltet.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) die **Steuereinheit** (PC und NAS neu starten/herunterfahren), der **Kalender**, die **News** (tagesschau) und **Benachrichtigungen**; Sicherheit ist noch mit nichts verbunden, Chat ist momentan nicht verfügbar.
 
 ## Anmeldung
 
@@ -72,6 +72,34 @@ Exporte (CSV, JSON, Sicherung) landen im Download-Ordner – auf Android über d
 
 Lagezentrum, Register und Anträge sind in `web/js/portal.js` nachgebaut. Die übrigen Bereiche liegen als unveränderte Kopie der Konsole in `portal/pages/` und `portal/components/`; `portal/lib/` verbindet sie mit der Anmeldung und dem Datenzugriff von nDashboard. Nach Änderungen in `portal/` (z. B. neue Version aus dem Konsolen-Repo kopiert) `tools/build-portal.sh` ausführen (braucht Node.js) und `web/js/portal-abis.js` mit einchecken – der Build prüft, dass beides zusammenpasst.
 
+## Kalender
+
+Die Seite **Kalender** funktioniert wie der Google Kalender, nur ohne Konto:
+
+- Ansichten **Tag**, **Woche**, **Monat** und **Liste** (Terminübersicht), „Heute“, vor/zurück; in Tag/Woche auf eine freie Stelle tippen legt dort einen Termin an
+- Termine mit Uhrzeit oder **ganztägig**, auch über mehrere Tage, mit Ort, Beschreibung und eigener Farbe
+- **Wiederholungen**: täglich, wöchentlich (an bestimmten Wochentagen, z. B. Mo–Fr), monatlich, jährlich, alle N Tage/Wochen/…, mit Ende (Datum oder Anzahl). Ändern und Löschen wie bei Google: nur dieser Termin, dieser und alle folgenden oder die ganze Serie
+- **Erinnerungen** (mehrere pro Termin) → Benachrichtigung
+- mehrere **Kalender** mit Farben (ein-/ausblenden über die Leiste oben), **Feiertage** (bundesweit), **Suche**
+- **Import/Export als .ics** – so lassen sich Termine aus dem Google Kalender übernehmen (dort: Einstellungen → Import & Export)
+- die nächsten Termine stehen auch auf der Startseite
+
+Gespeichert wird wie bei den Zielen auf dem NAS (`/.ndashboard/kalender.json`), damit Handy und PC dieselben Termine sehen. Eine Kopie bleibt auf dem Gerät: Ist das NAS unterwegs nicht erreichbar, kannst du trotzdem Termine anlegen; sie werden beim nächsten Mal aufs NAS übertragen.
+
+## News (tagesschau)
+
+**News** zeigt die aktuellen Nachrichten der [tagesschau](https://www.tagesschau.de) (Alle, Inland, Ausland, Wirtschaft, Wissen) mit Eilmeldungen. Artikel öffnen sich in der App, „Auf tagesschau.de“ im Browser. Die zuletzt geladene Liste bleibt ohne Netz verfügbar.
+
+## Benachrichtigungen
+
+Unter **Einstellungen → Benachrichtigungen** einschalten (die App fragt einmal nach der Erlaubnis). Es gibt:
+
+- **Kalender-Erinnerungen**
+- **tagesschau-Eilmeldungen** (alle 5 Minuten geprüft)
+- **Warnungen vom PC** (PC-Agent: Temperatur, Speicher, Abstürze, fehlgeschlagene SSH-Anmeldungen; alle 2 Minuten geprüft)
+
+Auf **Android** plant das System die Termin-Erinnerungen selbst – sie kommen auch, wenn die App geschlossen ist, und nach einem Neustart des Handys. Eilmeldungen und PC-Warnungen (und auf Windows, macOS und Linux alle Meldungen) kommen, solange die App läuft. Alle Meldungen stehen zusätzlich hinter der **Glocke** oben rechts.
+
 ## Zuhause und unterwegs (WLAN / VPN)
 
 Für den Zugriff von unterwegs empfiehlt sich [Tailscale](https://tailscale.com) auf PC, NAS und Handy (kein Port im Router freigeben!). In den Einstellungen hat jede Verbindung dann zwei Adressen: **im WLAN** (`192.168.…`) und **über VPN** (Tailscale, `100.…`). Oben unter **Netzwerk** wählst du:
@@ -130,9 +158,13 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Ziel (Teile, Erspartes) | `#/goal?id=…` | ManagementScreen |
 | Management → Spiel (Codes-Admin) | `#/game` | ManagementScreen |
 | Management → Bürgerportal (ABIS) | `#/portal?s=lage` · `…?s=register&id=…` · `…?s=bank` usw. | ManagementScreen |
-| Bulletin (News) | `#/news` | NewsScreen |
-| Chat (ausgeschaltet) | `#/chat` | ChatScreen |
-| Einstellungen (Konten, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
+| Kalender | `#/calendar?v=week&d=2026-11-02` | – |
+| Termin (neu/bearbeiten) | `#/event?id=…` · `#/event?d=…&t=10:00` | – |
+| News (tagesschau) | `#/news` | NewsScreen |
+| Artikel | `#/article?u=…` | NewsScreen |
+| Benachrichtigungen | `#/notifications` | – |
+| Chat (nicht verfügbar) | `#/chat` | ChatScreen |
+| Einstellungen (Konten, Benachrichtigungen, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
 Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Steuerung, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
@@ -148,6 +180,9 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   js/services.js Verbindungen zu den Agenten (PC, NAS)
   js/monitor.js Seite Sensoren
   js/goals.js   Seiten Management (Ziele) und Ziel
+  js/calendar.js Kalender (Ansichten, Wiederholungen, Erinnerungen, .ics)
+  js/news.js    News (tagesschau-API)
+  js/notify.js  Benachrichtigungen (Android-Brücke, Linux-Portal, Web-API) und Glocke
   js/control.js Seite Steuereinheit
   js/auth.js    Anmeldung (Bürgerportal + Spiel), automatische Abmeldung
   js/game.js    Management → Spiel (Codes-Admin des Disponenten-Simulators)

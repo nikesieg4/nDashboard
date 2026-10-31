@@ -9,6 +9,8 @@ const path = require('path');
 const WEB = app.isPackaged ? path.join(process.resourcesPath, 'web') : path.join(__dirname, '..', 'web');
 let win = null;
 
+// Windows ordnet Benachrichtigungen der App über diese ID zu (wie appId in package.json)
+app.setAppUserModelId('de.nikesieg4.nDashboard');
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 

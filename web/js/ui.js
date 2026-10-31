@@ -1,5 +1,5 @@
-/* nDashboard — kleine Formular- und Dialogbausteine für die Admin-Bereiche (Spiel, Bürgerportal),
- * die das Terminal-Ops-Design nicht mitbringt: Auswahlliste, Häkchen, Chips, Fenster. */
+/* nDashboard — kleine Formular- und Dialogbausteine, die das Terminal-Ops-Design nicht mitbringt:
+ * Auswahlliste, Häkchen, Chips, Fenster; dazu Links nach außen öffnen. */
 (function () {
   var O = window.Ops, h = React.createElement;
 
@@ -36,5 +36,13 @@
         p.children, h('div', { className: 'op-row', style: { justifyContent: 'flex-end', marginTop: 16 } }, h(O.Button, { variant: 'ghost', onClick: p.onClose }, 'Schließen'))));
   }
 
-  window.NDUi = { Select: Select, options: options, Check: Check, Chips: Chips, Modal: Modal };
+  /** Link im Browser des Systems öffnen (nicht in der App navigieren). Android: über die App-Brücke,
+   *  Windows/macOS: Electron leitet window.open nach außen, Linux: ndashboard.py ebenso. */
+  function openExternal(url) {
+    if (!/^https?:\/\//.test(url)) return;
+    if (window.NDNative && window.NDNative.openUrl) window.NDNative.openUrl(url);
+    else window.open(url, '_blank', 'noopener');
+  }
+
+  window.NDUi = { Select: Select, options: options, Check: Check, Chips: Chips, Modal: Modal, openExternal: openExternal };
 })();
