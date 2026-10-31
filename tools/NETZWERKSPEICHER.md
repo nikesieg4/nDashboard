@@ -275,3 +275,13 @@ Fürs Heimnetz ist das in Ordnung, aber wisse, was du tust:
 - Freigegeben ist **genau der eine Ordner**, den du beim Start angibst. Das Programm lässt niemanden aus diesem Ordner ausbrechen, auch nicht über Tricks im Pfad.
 - Die Freigabe gilt **nur im lokalen Netz**. Gib den Port niemals im Router frei („Portfreigabe“, „Port Forwarding“), sonst ist dein Stick aus dem ganzen Internet erreichbar.
 - Zum Abschalten reicht `Strg + C` im Fenster, beziehungsweise `pkill -f nas-server.py`, das Beenden im Task-Manager oder `sudo systemctl stop nas`.
+
+## Archive (ZIP, 7z, RAR)
+
+Die App kann Archive auf dem NAS entpacken und Dateien packen (siehe [README](../README.md)). ZIP und TAR.GZ gehen sofort. Für 7z, RAR und Passwortschutz braucht der Rechner 7-Zip, das `nas-server.py` beim Start sucht (Programm `7zz`, `7z` oder `7za`):
+
+- **Mac:** `brew install sevenzip`
+- **Windows:** [7-zip.org](https://www.7-zip.org) installieren und den Ordner `C:\Program Files\7-Zip` zur Umgebungsvariablen `PATH` hinzufügen
+- **Linux:** `sudo apt install 7zip`
+
+Danach `nas-server.py` neu starten; die Startmeldung zeigt dann „Archive: ZIP, 7z, RAR, TAR …“.

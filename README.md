@@ -26,6 +26,7 @@ In der App unter **Einstellungen → NAS-Verbindung** Adresse, Benutzer und Pass
 - Textdateien (txt, md, csv, json, Code …) öffnen, bearbeiten und speichern (auch mit Strg+S); Bilder, Videos, Audio und auf dem PC PDFs ansehen
 - Dateien hochladen (mehrere auf einmal, mit Fortschritt) und herunterladen (Android: Ordner „Downloads“, Linux: Download-Ordner)
 - neue Ordner und Textdateien anlegen, umbenennen, verschieben, löschen (Ordner samt Inhalt, mit Rückfrage)
+- **Archive** direkt auf dem NAS entpacken (ZIP, 7z, RAR, TAR, TAR.GZ/BZ2/XZ, GZ) und Dateien/Ordner packen (ZIP, 7z, TAR.GZ), auch mit **Passwort** – für 7z/RAR/Passwort einmal `sudo apt install 7zip` auf dem NAS ([Anleitung](tools/RASPBERRYPI.md#11-archive-entpacken-und-komprimieren-zip-7z-rar))
 - den Speicherplatz des NAS anzeigen
 
 Ausführliche Anleitungen: [Rechner als NAS](tools/NETZWERKSPEICHER.md) · [Raspberry Pi als NAS](tools/RASPBERRYPI.md).
