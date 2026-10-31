@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Benachrichtigungs-Symbol (einfarbig): Tastenfeld des Logos zwischen den Winkelklammern. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="96" android:viewportHeight="96">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7" android:strokeLineCap="square"
+        android:pathData="M24,22L10,48l14,26M72,22l14,26-14,26" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M31,31h9v9h-9z M43.5,31h9v9h-9z M56,31h9v9h-9z M31,43.5h9v9h-9z M43.5,43.5h9v9h-9z M56,43.5h9v9h-9z M31,56h9v9h-9z M43.5,56h9v9h-9z M56,56h9v9h-9z" />
+</vector>
