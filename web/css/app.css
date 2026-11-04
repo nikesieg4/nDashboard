@@ -44,6 +44,9 @@ body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .file-row { display: flex; align-items: center; border-bottom: var(--hairline) solid var(--line); }
 .file-row .op-li { flex: 1; min-width: 0; border-bottom: 0; }
 .file-row .op-appbar-btn { color: var(--ink-muted); flex: none; }
+.select-bar { padding: var(--space-2) var(--space-3); border: var(--hairline) solid var(--signal-dim); background: var(--bg-100); }
+.file-row .goal-check { margin-left: var(--space-2); }
+.file-row-picked { background: color-mix(in srgb, var(--signal) 8%, transparent); }
 .link-btn { appearance: none; background: none; border: 0; padding: 0; color: var(--signal); font: inherit; text-decoration: underline; cursor: pointer; }
 .viewer { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .app-body-fill { min-height: 100%; }

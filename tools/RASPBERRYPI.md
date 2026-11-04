@@ -256,7 +256,30 @@ Handy oder PC müssen dabei im Heimnetz sein.
 
 ---
 
-## 11. Betrieb und Sicherheit
+## 11. Archive: Entpacken und Komprimieren (ZIP, 7z, RAR)
+
+Im Dateibrowser der App kannst du Archive direkt auf dem NAS entpacken und Dateien/Ordner packen – auch mit Passwort. Das erledigt der Pi selbst, die Dateien gehen nicht übers Handy.
+
+**a) nas-server.py aktualisieren** (die Archivfunktionen gibt es ab der Version vom 1.11.2026). Die neue Datei an dieselbe Stelle laden, die in deiner Dienstdatei bei `ExecStart` steht (`systemctl cat nas` zeigt sie), z. B.:
+
+```sh
+wget -O /home/pi/nas-server.py https://raw.githubusercontent.com/nikesieg4/nDashboard/main/tools/nas-server.py
+sudo systemctl restart nas
+```
+
+**b) 7-Zip installieren** – für 7z, RAR und Passwortschutz. ZIP und TAR.GZ funktionieren auch ohne.
+
+```sh
+sudo apt install 7zip          # Raspberry Pi OS ab Bookworm (Debian 12), kann auch RAR
+# ältere Systeme:  sudo apt install p7zip-full   (ohne RAR)
+sudo systemctl restart nas
+```
+
+Beim Start zeigt `sudo systemctl status nas` die Zeile „Archive: ZIP, 7z, RAR, TAR …“.
+
+**In der App:** Tipp auf die drei Punkte neben einem Archiv → *Entpacken nach „Name/“* oder *Hier entpacken*. Zum Packen: drei Punkte → *Komprimieren …*, oder für mehrere Einträge **+** → *Auswählen*, Einträge antippen, *Komprimieren*. Formate: ZIP, 7z, TAR.GZ; ZIP und 7z auf Wunsch mit Passwort (AES-256, bei 7z sind auch die Dateinamen verschlüsselt). Verschlüsselte Archive fragen beim Entpacken nach dem Passwort.
+
+## 12. Betrieb und Sicherheit
 
 - **Ausschalten** immer sauber mit `sudo shutdown -h now`, erst danach den Strom ziehen. Sonst kann die SD-Karte Schaden nehmen.
 - **Passwort ändern** mit `passwd`, falls du im Imager etwas Einfaches gewählt hast.

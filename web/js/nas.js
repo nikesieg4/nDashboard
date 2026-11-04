@@ -7,6 +7,7 @@
   var IMAGE_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
   var VIDEO_EXT = ['mp4', 'webm', 'mov', 'mkv'];
   var AUDIO_EXT = ['mp3', 'ogg', 'wav', 'flac', 'm4a'];
+  var ARCHIVE_RE = /\.(zip|7z|rar|tar|tgz|tbz2|txz|tar\.(gz|bz2|xz)|gz|bz2|xz)$/i;
 
   function load() {
     try { return window.NDNet.migrate(JSON.parse(localStorage.getItem(KEY)) || null); } catch (e) { return null; }
@@ -57,6 +58,7 @@
     if (VIDEO_EXT.indexOf(e) >= 0) return 'video';
     if (AUDIO_EXT.indexOf(e) >= 0) return 'audio';
     if (e === 'pdf') return 'pdf';
+    if (ARCHIVE_RE.test(item.name)) return 'archive';
     if (TEXT_EXT.indexOf(e) >= 0 || /^text\//.test(item.type || '')) return 'text';
     return 'other';
   }
@@ -142,6 +144,39 @@
     });
   }
 
+  /* ---------- Archive (nur mit tools/nas-server.py ab Version 2) ---------- */
+  var capsCache = null;
+  /** Was das NAS packen/entpacken kann; null bei älterer nas-server.py oder anderem WebDAV-Server. */
+  function caps() {
+    if (!capsCache) {
+      capsCache = request('GET', '/.nd/caps').then(function (r) { return r.json(); }).then(function (d) { return d.archive || null; }, function (e) {
+        capsCache = null;
+        if (e.status === 404 || e.status === 405) return null;
+        throw e;
+      });
+    }
+    return capsCache;
+  }
+  var OLD_SERVER = 'Archive brauchen die neue nas-server.py auf dem NAS (Anleitung: Abschnitt „Archive“ in RASPBERRYPI.md).';
+  /** Auftrag ans NAS (entpacken/komprimieren) und warten, bis er fertig ist. onProgress({done, total}). */
+  function archive(job, onProgress) {
+    return request('POST', '/.nd/archive', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(job) })
+      .catch(function (e) { if (e.status === 404 || e.status === 405 || e.status === 501) throw new NasError(e.status, OLD_SERVER); throw e; })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw Object.assign(new NasError(422, d.error), { code: d.code });
+        return new Promise(function (resolve, reject) {
+          (function tick() {
+            request('GET', '/.nd/jobs/' + d.job).then(function (r) { return r.json(); }).then(function (j) {
+              if (j.state === 'running') { if (onProgress) onProgress(j); setTimeout(tick, 700); }
+              else if (j.state === 'done') resolve(j.result);
+              else reject(Object.assign(new NasError(422, j.error), { code: j.code }));
+            }, reject);
+          })();
+        });
+      });
+  }
+
   function formatSize(bytes) {
     if (bytes == null) return '';
     var units = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0, v = bytes;
@@ -160,7 +195,7 @@
   window.NAS = {
     config: function () { return current; }, configured: function () { return !!(current && (current.url || current.urlVpn)); }, save: save,
     list: list, readText: readText, readBlob: readBlob, writeText: writeText, mkdir: mkdir, remove: remove, move: move,
-    upload: upload, download: download, kind: kind, ext: ext,
+    upload: upload, download: download, kind: kind, ext: ext, caps: caps, archive: archive,
     formatSize: formatSize, formatDate: formatDate, parent: parent, join: join, validName: validName
   };
 })();
