@@ -303,12 +303,11 @@
   function UpdateBanner() {
     var u = useUpdate(), hidden = React.useState(null);
     if (!window.NDUpdate.available() || hidden[0] === u.latest.tag) return null;
-    var direct = window.NDUpdate.canInstall(), mac = window.NDUpdate.platform() === 'mac';
+    var direct = window.NDUpdate.canInstall();
     return h(O.Alert, { tone: 'info', title: 'Update verfügbar: ' + u.latest.name },
       window.NDUpdate.hint(),
       h('div', { className: 'op-row', style: { marginTop: 10 } },
         direct ? h(O.Button, { size: 'sm', icon: 'download', onClick: installUpdate }, 'Jetzt aktualisieren') : null,
-        mac ? h(O.Button, { size: 'sm', icon: 'download', onClick: window.NDUpdate.openRelease }, 'Herunterladen') : null,
         h(O.Button, { size: 'sm', variant: 'ghost', onClick: function () { hidden[1](u.latest.tag); } }, 'Später')));
   }
 
@@ -323,8 +322,7 @@
       h(O.InfoList, { items: [{ label: 'Installiert', value: v.name }].concat(u.latest ? [{ label: 'Neueste auf GitHub', value: u.latest.name }] : []) }),
       h('div', { className: 'op-row', style: { marginTop: 14 } },
         h(O.Button, { variant: 'outline', icon: 'signal', disabled: u.checking, onClick: function () { window.NDUpdate.check(true); } }, 'Nach Updates suchen'),
-        available && window.NDUpdate.canInstall() ? h(O.Button, { icon: 'download', onClick: installUpdate }, 'Jetzt aktualisieren') : null,
-        available && window.NDUpdate.platform() === 'mac' ? h(O.Button, { icon: 'download', onClick: window.NDUpdate.openRelease }, 'Herunterladen') : null),
+        available && window.NDUpdate.canInstall() ? h(O.Button, { icon: 'download', onClick: installUpdate }, 'Jetzt aktualisieren') : null,),
       status ? h('div', { style: { marginTop: 10 } }, h(O.Status, { tone: status.tone }, status.text)) : null);
   }
 

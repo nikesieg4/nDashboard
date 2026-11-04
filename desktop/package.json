@@ -2,7 +2,7 @@
   "name": "ndashboard",
   "productName": "nDashboard",
   "version": "0.0.0",
-  "description": "nDashboard für Windows und macOS",
+  "description": "nDashboard für Windows",
   "author": "nikesieg4",
   "private": true,
   "main": "main.js",
@@ -26,8 +26,6 @@
     "publish": [{ "provider": "github", "owner": "nikesieg4", "repo": "nDashboard" }],
     "win": { "target": "nsis" },
     "nsis": { "artifactName": "nDashboard-Setup.exe", "oneClick": true, "perMachine": false, "deleteAppDataOnUninstall": false },
-    "mac": { "target": "dmg", "category": "public.app-category.utilities", "identity": "-", "hardenedRuntime": false },
-    "dmg": { "artifactName": "nDashboard.dmg" },
     "linux": { "target": "dir" }
   }
 }

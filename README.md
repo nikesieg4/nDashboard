@@ -99,7 +99,7 @@ Unter **Einstellungen → Benachrichtigungen** einschalten (die App fragt einmal
 - **tagesschau-Eilmeldungen** (alle 5 Minuten geprüft)
 - **Warnungen vom PC** (PC-Agent: Temperatur, Speicher, Abstürze, fehlgeschlagene SSH-Anmeldungen; alle 2 Minuten geprüft)
 
-Auf **Android** plant das System die Termin-Erinnerungen selbst – sie kommen auch, wenn die App geschlossen ist, und nach einem Neustart des Handys. Eilmeldungen und PC-Warnungen (und auf Windows, macOS und Linux alle Meldungen) kommen, solange die App läuft. Alle Meldungen stehen zusätzlich hinter der **Glocke** oben rechts.
+Auf **Android** plant das System die Termin-Erinnerungen selbst – sie kommen auch, wenn die App geschlossen ist, und nach einem Neustart des Handys. Eilmeldungen und PC-Warnungen (und auf Windows und Linux alle Meldungen) kommen, solange die App läuft. Alle Meldungen stehen zusätzlich hinter der **Glocke** oben rechts.
 
 ## Zuhause und unterwegs (WLAN / VPN)
 
@@ -114,7 +114,7 @@ Im Menü steht jederzeit, welches Netz gerade benutzt wird. Ältere Einstellunge
 
 Jeder Push auf `main` veröffentlicht automatisch eine neue Version (`.github/workflows/build.yml`):
 
-- ein [GitHub Release](https://github.com/nikesieg4/nDashboard/releases/latest) mit `nDashboard.apk`, `nDashboard.flatpak`, `nDashboard-Setup.exe` (Windows) und `nDashboard.dmg` (macOS)
+- ein [GitHub Release](https://github.com/nikesieg4/nDashboard/releases/latest) mit `nDashboard.apk`, `nDashboard.flatpak` und `nDashboard-Setup.exe` (Windows)
 - eine Flatpak-Paketquelle unter <https://nikesieg4.github.io/nDashboard/>
 
 **Android:** Die APK aus dem [neuesten Release](https://github.com/nikesieg4/nDashboard/releases/latest) einmal installieren. Danach prüft die App beim Start (höchstens einmal pro Stunde) auf GitHub, ob es eine neuere Version gibt, und zeigt „Update verfügbar“. Ein Tipp auf **Jetzt aktualisieren** lädt die neue APK und öffnet den Installieren-Dialog. Beim ersten Mal fragt Android, ob nDashboard Apps installieren darf. Manuell geht es unter Einstellungen → Updates.
@@ -128,7 +128,6 @@ Danach kommen Updates wie bei jeder anderen Flatpak-App über die Softwareverwal
 
 **Windows:** `nDashboard-Setup.exe` aus dem [neuesten Release](https://github.com/nikesieg4/nDashboard/releases/latest) starten – installiert ohne Admin-Rechte für deinen Benutzer. Weil der Installer nicht mit einem gekauften Zertifikat signiert ist, warnt Windows SmartScreen beim ersten Mal: **Weitere Informationen → Trotzdem ausführen**. Updates: In der App erscheint „Update verfügbar“, **Jetzt aktualisieren** lädt die neue Version, installiert sie und startet die App neu.
 
-**macOS** (Intel und Apple Silicon): `nDashboard.dmg` öffnen und nDashboard in **Programme** ziehen. Die App ist nicht von Apple beglaubigt (dafür bräuchte es ein Apple-Entwicklerkonto). Beim ersten Start meldet macOS, dass sie nicht geprüft werden kann: **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen** (unter älteren macOS-Versionen: Rechtsklick auf die App → Öffnen). Updates: Die App zeigt neue Versionen an, **Herunterladen** öffnet die neue `nDashboard.dmg`; die App wie beim ersten Mal ersetzen.
 
 Jeder Push (auch auf andere Branches) baut beide Dateien außerdem im Actions-Lauf unter **Artifacts**.
 
@@ -197,7 +196,7 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   vendor/       React 18.3.1 und supabase-js 2.117.3 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
-desktop/    Electron-Hülle für Windows und macOS (electron-builder, Updates über electron-updater)
+desktop/    Electron-Hülle für Windows (electron-builder, Updates über electron-updater)
 portal/     Bereiche der ABIS-Konsole (aus dPUbtsXv3y), gebaut mit tools/build-portal.sh
 tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll), build-portal.sh + Anleitungen
 ```
@@ -217,13 +216,12 @@ flatpak-builder --user --force-clean --install-deps-from=flathub --repo=repo bui
 flatpak build-bundle repo nDashboard.flatpak de.nikesieg4.nDashboard
 ```
 
-**Windows/macOS** (benötigt Node.js; auf dem jeweiligen System bauen):
+**Windows** (benötigt Node.js; unter Windows bauen):
 ```sh
 cd desktop
 npm ci
 npm start                                   # zum Ausprobieren
 npx electron-builder --win nsis             # → desktop/dist/nDashboard-Setup.exe
-npx electron-builder --mac dmg --universal  # → desktop/dist/nDashboard.dmg
 ```
 
 **Im Browser ansehen:** `web/index.html` direkt öffnen.

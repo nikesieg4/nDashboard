@@ -37,7 +37,7 @@
   }
 
   /** Link im Browser des Systems öffnen (nicht in der App navigieren). Android: über die App-Brücke,
-   *  Windows/macOS: Electron leitet window.open nach außen, Linux: ndashboard.py ebenso. */
+   *  Windows: Electron leitet window.open nach außen, Linux: ndashboard.py ebenso. */
   function openExternal(url) {
     if (!/^https?:\/\//.test(url)) return;
     if (window.NDNative && window.NDNative.openUrl) window.NDNative.openUrl(url);

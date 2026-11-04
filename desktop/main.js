@@ -1,6 +1,5 @@
-/* nDashboard für Windows und macOS: Electron-Hülle um die gemeinsame Oberfläche web/
- * (wie android/ und linux/). Updates: Windows über electron-updater aus den GitHub-Releases,
- * macOS (nicht signiert) per Hinweis und Download-Link in der App. */
+/* nDashboard für Windows: Electron-Hülle um die gemeinsame Oberfläche web/
+ * (wie android/ und linux/). Updates über electron-updater aus den GitHub-Releases. */
 const { app, BrowserWindow, ipcMain, shell, session } = require('electron');
 const fs = require('fs');
 const path = require('path');
@@ -46,7 +45,6 @@ function saveDownloads() {
 }
 
 /* ---------- Updates ---------- */
-// macOS installiert Updates nur bei signierten Apps; dort zeigt die App einen Download-Link
 const CAN_UPDATE = app.isPackaged && process.platform === 'win32';
 ipcMain.handle('nd:info', () => ({ platform: process.platform, canUpdate: CAN_UPDATE, version: app.getVersion() }));
 ipcMain.handle('nd:update', async () => {

@@ -2,7 +2,7 @@
  *  - Android: über die App-Brücke (NDNative). Erinnerungen plant Android selbst (AlarmManager) und zeigt
  *    sie auch an, wenn die App geschlossen ist.
  *  - Linux (Flatpak): über ndashboard.py als Systembenachrichtigung (Nachrichtenhandler „ndnotify“).
- *  - Windows/macOS (Electron): Web-Notification-API.
+ *  - Windows (Electron): Web-Notification-API.
  *  Auf dem Desktop kommen Meldungen nur, solange die App läuft.
  * Alle Meldungen landen außerdem in der Liste hinter der Glocke (#/notifications). */
 (function () {
