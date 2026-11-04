@@ -1,4 +1,4 @@
-/* nDashboard — Verbindungen zu den Agenten (tools/pc-agent.py) auf dem PC und auf dem NAS.
+/* nDashboard — Verbindung zum Agenten (tools/pc-agent.py) auf dem PC.
  * Zugangsdaten liegen wie beim NAS nur auf diesem Gerät (localStorage). */
 (function () {
   function store(key) {
@@ -12,7 +12,7 @@
   function ServiceError(status, message) { this.status = status; this.message = message; }
   var TIMEOUT = 8000; // ausgeschaltete Geräte antworten nie – nicht endlos warten
 
-  /** Verbindung zu einem Agenten; `name` erscheint in Fehlermeldungen („PC“, „NAS“). */
+  /** Verbindung zu einem Agenten; `name` erscheint in Fehlermeldungen („PC“). */
   function makeAgent(key, name) {
     var cfg = store(key);
     window.NDNet.register(cfg.get);
@@ -47,5 +47,5 @@
     };
   }
 
-  window.NDServices = { Agent: makeAgent('nd.agent', 'PC'), NasAgent: makeAgent('nd.agent.nas', 'NAS') };
+  window.NDServices = { Agent: makeAgent('nd.agent', 'PC') };
 })();

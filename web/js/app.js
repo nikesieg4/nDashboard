@@ -14,7 +14,7 @@
   var PAGES = {
     login:        { title: 'Anmeldung', root: true },
     home:         { title: 'Start', nav: 'home', root: true },
-    control:      { title: 'Steuereinheit', sub: 'PC & NAS', nav: 'control', root: true },
+    control:      { title: 'Steuereinheit', sub: 'PC', nav: 'control', root: true },
     files:        { title: 'Dateien', nav: 'files', root: true },
     file:         { title: 'Datei', nav: 'files' },
     sensors:      { title: 'Sensoren', sub: 'PC-Monitor', nav: 'sensors', root: true },
@@ -230,7 +230,7 @@
         'WLAN nutzt die Heimnetz-Adressen (192.168.…), VPN die Tailscale-Adressen (100.…). „Automatisch“ nimmt WLAN, wenn das Heimnetz antwortet, sonst VPN – so kannst du Tailscale zuhause ausschalten.'));
   }
 
-  /** Formular für eine Verbindung mit WLAN- und VPN-Adresse, Benutzer und Passwort (NAS, PC-Agent, NAS-Agent). */
+  /** Formular für eine Verbindung mit WLAN- und VPN-Adresse, Benutzer und Passwort (NAS, PC-Agent). */
   function ConnectionSettings(p) {
     var cfg = p.service.config() || {};
     var url = React.useState(cfg.url || ''), urlVpn = React.useState(cfg.urlVpn || ''), user = React.useState(cfg.user || ''), pass = React.useState(cfg.pass || '');
@@ -279,13 +279,6 @@
     return h(ConnectionSettings, { title: 'PC-Agent (Sensoren, Steuerung)', icon: 'sensor', service: Agent, placeholder: 'http://192.168.1.20:5006', vpnPlaceholder: 'http://100.x.y.z:5006',
       hint: 'Wird von pc-agent.py beim Start angezeigt.', goto: ['#/sensors', 'Zu den Sensoren'],
       test: function () { return Agent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
-  }
-
-  function NasAgentSettings() {
-    var NasAgent = window.NDServices.NasAgent;
-    return h(ConnectionSettings, { title: 'NAS-Agent (Steuerung)', icon: 'power', service: NasAgent, placeholder: 'http://192.168.1.60:5006', vpnPlaceholder: 'http://100.x.y.z:5006',
-      hint: 'pc-agent.py auf dem NAS (Raspberry Pi), siehe PC-AGENT.md. Nicht die Adresse von nas-server.py (Port 5005).', goto: ['#/control', 'Zur Steuereinheit'],
-      test: function () { return NasAgent.get('/api/status').then(function (s) { return s.host + ' · ' + s.os; }); } });
   }
 
   /** Update-Stand abonnieren (siehe update.js). */
@@ -362,7 +355,6 @@
       h(NetworkSettings, { key: 'net' }),
       h(NasSettings, { key: 'nas' }),
       h(AgentSettings, { key: 'agent' }),
-      h(NasAgentSettings, { key: 'nasagent' }),
       h(UpdateSettings, { key: 'upd' }),
       h(O.Panel, { key: 'b', variant: 'outlined', mutedCorners: true, title: 'App', icon: 'settings' },
         h('div', { className: 'op-col', style: { gap: 12 } }, h(O.Toggle, { defaultChecked: true, label: 'Kompakte Ansicht' }))),

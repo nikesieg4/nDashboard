@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) die **Steuereinheit** (PC und NAS neu starten/herunterfahren), der **Kalender**, die **News** (tagesschau) und **Benachrichtigungen**; Sicherheit ist noch mit nichts verbunden, Chat ist momentan nicht verfügbar.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) die **Steuereinheit** (PC neu starten/herunterfahren), der **Kalender**, die **News** (tagesschau) und **Benachrichtigungen**; Sicherheit ist noch mit nichts verbunden, Chat ist momentan nicht verfügbar.
 
 ## Anmeldung
 
@@ -45,9 +45,9 @@ Die Seite **Sensoren** zeigt, was auf deinem Linux-PC passiert. Dafür läuft do
 
 Einrichtung Schritt für Schritt: [PC-Agent einrichten](tools/PC-AGENT.md). In der App unter **Einstellungen → PC-Agent** Adresse (Standard-Port 5006), Benutzer und Passwort eintragen.
 
-## Steuereinheit: PC und NAS steuern
+## Steuereinheit: PC steuern
 
-Auf der Seite **Steuereinheit** siehst du, ob PC und NAS online sind, und kannst sie **neu starten**, **herunterfahren** oder in den **Ruhezustand** schicken – jeweils mit Rückfrage. Dafür läuft `pc-agent.py` auf beiden Geräten mit `--allow-control`. Es gibt bewusst keine freie Kommandozeile, nur diese festen Aktionen. Einrichtung: [PC-AGENT.md, Abschnitte 6 und 7](tools/PC-AGENT.md).
+Auf der Seite **Steuereinheit** siehst du, ob der PC online ist, und kannst ihn **neu starten**, **herunterfahren** oder in den **Ruhezustand** schicken – jeweils mit Rückfrage. Dafür läuft `pc-agent.py` mit `--allow-control`. Es gibt bewusst keine freie Kommandozeile, nur diese festen Aktionen. Einrichtung: [PC-AGENT.md, Abschnitt 6](tools/PC-AGENT.md).
 
 ## Management: Ziele und Sparpläne
 
@@ -149,7 +149,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 |---|---|---|
 | Anmeldung (Bürgerportal + Spiel) | `#/login` | LoginScreen |
 | Start / Terminal | `#/home` | TerminalScreen |
-| Steuereinheit (PC & NAS) | `#/control` | ControlUnitScreen |
+| Steuereinheit (PC) | `#/control` | ControlUnitScreen |
 | Dateien (NAS) | `#/files?p=/ordner` | FileManagerScreen |
 | Datei (Editor/Vorschau) | `#/file?p=/ordner/datei.txt` | FileManagerScreen |
 | Sensoren (PC-Monitor) | `#/sensors` | MotionSensorScreen |
@@ -164,7 +164,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Artikel | `#/article?u=…` | NewsScreen |
 | Benachrichtigungen | `#/notifications` | – |
 | Chat (nicht verfügbar) | `#/chat` | ChatScreen |
-| Einstellungen (Konten, Benachrichtigungen, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
+| Einstellungen (Konten, Benachrichtigungen, Netzwerk, NAS, PC-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
 Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Steuerung, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 

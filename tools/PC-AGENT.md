@@ -81,7 +81,7 @@ Einstellungen → **PC-Agent (Sensoren)**: Adresse aus Schritt 2, Benutzer und P
 
 ## 6. Steuerung: Neustart, Herunterfahren, Ruhezustand (optional)
 
-Auf der Seite **Steuereinheit** kannst du PC und NAS neu starten, herunterfahren oder in den Ruhezustand schicken. Aus Sicherheitsgründen gibt es **keine freie Kommandozeile** – nur diese drei festen Aktionen, jede mit Rückfrage in der App und nur mit Benutzer und Passwort.
+Auf der Seite **Steuereinheit** kannst du den PC neu starten, herunterfahren oder in den Ruhezustand schicken. Aus Sicherheitsgründen gibt es **keine freie Kommandozeile** – nur diese drei festen Aktionen, jede mit Rückfrage in der App und nur mit Benutzer und Passwort.
 
 **a) Freischalten:** `--allow-control` an die `ExecStart`-Zeile anhängen, dann `systemctl --user daemon-reload && systemctl --user restart ndashboard-agent`. Ohne diesen Schalter lehnt der Agent jede Steuerung ab.
 
@@ -101,16 +101,6 @@ ENDE
 Die Regel gilt sofort. Sie erlaubt diesem Benutzer nur Neustart, Herunterfahren und Ruhezustand – sonst nichts.
 
 **Achtung:** Nach dem Herunterfahren ist das Gerät aus und lässt sich aus der App nicht wieder einschalten.
-
-## 7. Auf dem NAS (Raspberry Pi)
-
-Damit du auch das NAS aus der App neu starten kannst, läuft derselbe Agent zusätzlich auf dem Pi (neben `nas-server.py`). Per SSH auf dem Pi die Schritte 1 bis 3 und 6 ausführen, dabei in der `ExecStart`-Zeile Dateien abschalten und die Steuerung freischalten:
-
-```
-ExecStart=/usr/bin/python3 %h/.local/bin/pc-agent.py --user ich --pass geheim --no-files --allow-control
-```
-
-`loginctl enable-linger $USER` nicht vergessen, sonst läuft der Agent auf dem Pi nur, solange du per SSH angemeldet bist. In der App unter **Einstellungen → NAS-Agent** die Adresse des Pi mit Port **5006** eintragen (nicht 5005 – das ist `nas-server.py`). Die Steuereinheit zeigt dann nebenbei auch Temperatur und RAM des Pi.
 
 ## Wenn etwas nicht klappt
 
