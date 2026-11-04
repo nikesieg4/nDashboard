@@ -1,5 +1,5 @@
 /* nDashboard — Netzwerkprofil: Zuhause (WLAN-Adressen) oder Unterwegs (VPN-Adressen, z. B. Tailscale 100.x).
- * Jede Verbindung (NAS, PC-Agent, NAS-Agent) speichert `url` (WLAN) und `urlVpn` (VPN).
+ * Jede Verbindung (NAS, PC-Agent) speichert `url` (WLAN) und `urlVpn` (VPN).
  * Modus „auto“: beim Start kurz prüfen, ob eine WLAN-Adresse antwortet – sonst VPN. */
 (function () {
   var KEY = 'nd.net', TIMEOUT = 1500;

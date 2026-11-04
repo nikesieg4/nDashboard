@@ -1,10 +1,9 @@
-/* nDashboard — Seite „Steuereinheit“: PC und NAS neu starten, herunterfahren, in den Ruhezustand schicken.
+/* nDashboard — Seite „Steuereinheit“: den PC neu starten, herunterfahren, in den Ruhezustand schicken.
  * Nur die festen Aktionen, die der Agent (tools/pc-agent.py --allow-control) anbietet – jede mit Rückfrage. */
 (function () {
   var O = window.Ops, h = React.createElement, S = window.NDServices, Files = window.NDFiles;
   var DEVICES = [
-    { id: 'pc', title: 'PC', icon: 'grid', agent: S.Agent },
-    { id: 'nas', title: 'NAS', icon: 'folder', agent: S.NasAgent }
+    { id: 'pc', title: 'PC', icon: 'grid', agent: S.Agent }
   ];
   var ACTIONS = [
     { id: 'reboot', label: 'Neustart', icon: 'power', variant: 'outline', verb: 'neu starten' },
@@ -94,7 +93,7 @@
   function Control() {
     return [
       h('p', { key: 'i', style: { margin: 0, color: 'var(--ink-muted)' } },
-        'Neustart, Herunterfahren und Ruhezustand für PC und NAS. Jede Aktion fragt vorher nach.'),
+        'Neustart, Herunterfahren und Ruhezustand für den PC. Jede Aktion fragt vorher nach.'),
       h('div', { key: 'd', className: 'control-grid' }, DEVICES.map(function (d) { return h(Device, { key: d.id, device: d }); }))
     ];
   }

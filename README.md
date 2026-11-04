@@ -1,7 +1,7 @@
 # nDashboard
 
 App im **Terminal Ops**-Design (dunkles Kontrollterminal: schwarze Panels auf Punktraster, Signalgelb, Eckklammern).
-Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) die **Steuereinheit** (PC und NAS neu starten/herunterfahren), der **Kalender**, die **News** (tagesschau) und **Benachrichtigungen**; Sicherheit ist noch mit nichts verbunden, Chat ist momentan nicht verfügbar.
+Enthalten sind alle Seiten des App-Templates. Funktionsfähig sind die **Anmeldung**, die **Dateien auf deinem NAS**, die **Sensoren** (Protokoll und Hardware deines PCs), das **Management** (eigene Ziele, Codes-Admin des Disponenten-Simulators, ABIS-Konsole des Bürgerportals) die **Steuereinheit** (PC neu starten/herunterfahren), der **Kalender**, die **News** (tagesschau) und **Benachrichtigungen**; Sicherheit ist noch mit nichts verbunden, Chat ist momentan nicht verfügbar.
 
 ## Anmeldung
 
@@ -45,9 +45,9 @@ Die Seite **Sensoren** zeigt, was auf deinem Linux-PC passiert. Dafür läuft do
 
 Einrichtung Schritt für Schritt: [PC-Agent einrichten](tools/PC-AGENT.md). In der App unter **Einstellungen → PC-Agent** Adresse (Standard-Port 5006), Benutzer und Passwort eintragen.
 
-## Steuereinheit: PC und NAS steuern
+## Steuereinheit: PC steuern
 
-Auf der Seite **Steuereinheit** siehst du, ob PC und NAS online sind, und kannst sie **neu starten**, **herunterfahren** oder in den **Ruhezustand** schicken – jeweils mit Rückfrage. Dafür läuft `pc-agent.py` auf beiden Geräten mit `--allow-control`. Es gibt bewusst keine freie Kommandozeile, nur diese festen Aktionen. Einrichtung: [PC-AGENT.md, Abschnitte 6 und 7](tools/PC-AGENT.md).
+Auf der Seite **Steuereinheit** siehst du, ob der PC online ist, und kannst ihn **neu starten**, **herunterfahren** oder in den **Ruhezustand** schicken – jeweils mit Rückfrage. Dafür läuft `pc-agent.py` mit `--allow-control`. Es gibt bewusst keine freie Kommandozeile, nur diese festen Aktionen. Einrichtung: [PC-AGENT.md, Abschnitt 6](tools/PC-AGENT.md).
 
 ## Management: Ziele und Sparpläne
 
@@ -99,7 +99,7 @@ Unter **Einstellungen → Benachrichtigungen** einschalten (die App fragt einmal
 - **tagesschau-Eilmeldungen** (alle 5 Minuten geprüft)
 - **Warnungen vom PC** (PC-Agent: Temperatur, Speicher, Abstürze, fehlgeschlagene SSH-Anmeldungen; alle 2 Minuten geprüft)
 
-Auf **Android** plant das System die Termin-Erinnerungen selbst – sie kommen auch, wenn die App geschlossen ist, und nach einem Neustart des Handys. Eilmeldungen und PC-Warnungen (und auf Windows, macOS und Linux alle Meldungen) kommen, solange die App läuft. Alle Meldungen stehen zusätzlich hinter der **Glocke** oben rechts.
+Auf **Android** plant das System die Termin-Erinnerungen selbst – sie kommen auch, wenn die App geschlossen ist, und nach einem Neustart des Handys. Eilmeldungen und PC-Warnungen (und auf Windows und Linux alle Meldungen) kommen, solange die App läuft. Alle Meldungen stehen zusätzlich hinter der **Glocke** oben rechts.
 
 ## Zuhause und unterwegs (WLAN / VPN)
 
@@ -114,7 +114,7 @@ Im Menü steht jederzeit, welches Netz gerade benutzt wird. Ältere Einstellunge
 
 Jeder Push auf `main` veröffentlicht automatisch eine neue Version (`.github/workflows/build.yml`):
 
-- ein [GitHub Release](https://github.com/nikesieg4/nDashboard/releases/latest) mit `nDashboard.apk`, `nDashboard.flatpak`, `nDashboard-Setup.exe` (Windows) und `nDashboard.dmg` (macOS)
+- ein [GitHub Release](https://github.com/nikesieg4/nDashboard/releases/latest) mit `nDashboard.apk`, `nDashboard.flatpak` und `nDashboard-Setup.exe` (Windows)
 - eine Flatpak-Paketquelle unter <https://nikesieg4.github.io/nDashboard/>
 
 **Android:** Die APK aus dem [neuesten Release](https://github.com/nikesieg4/nDashboard/releases/latest) einmal installieren. Danach prüft die App beim Start (höchstens einmal pro Stunde) auf GitHub, ob es eine neuere Version gibt, und zeigt „Update verfügbar“. Ein Tipp auf **Jetzt aktualisieren** lädt die neue APK und öffnet den Installieren-Dialog. Beim ersten Mal fragt Android, ob nDashboard Apps installieren darf. Manuell geht es unter Einstellungen → Updates.
@@ -128,7 +128,6 @@ Danach kommen Updates wie bei jeder anderen Flatpak-App über die Softwareverwal
 
 **Windows:** `nDashboard-Setup.exe` aus dem [neuesten Release](https://github.com/nikesieg4/nDashboard/releases/latest) starten – installiert ohne Admin-Rechte für deinen Benutzer. Weil der Installer nicht mit einem gekauften Zertifikat signiert ist, warnt Windows SmartScreen beim ersten Mal: **Weitere Informationen → Trotzdem ausführen**. Updates: In der App erscheint „Update verfügbar“, **Jetzt aktualisieren** lädt die neue Version, installiert sie und startet die App neu.
 
-**macOS** (Intel und Apple Silicon): `nDashboard.dmg` öffnen und nDashboard in **Programme** ziehen. Die App ist nicht von Apple beglaubigt (dafür bräuchte es ein Apple-Entwicklerkonto). Beim ersten Start meldet macOS, dass sie nicht geprüft werden kann: **Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen** (unter älteren macOS-Versionen: Rechtsklick auf die App → Öffnen). Updates: Die App zeigt neue Versionen an, **Herunterladen** öffnet die neue `nDashboard.dmg`; die App wie beim ersten Mal ersetzen.
 
 Jeder Push (auch auf andere Branches) baut beide Dateien außerdem im Actions-Lauf unter **Artifacts**.
 
@@ -150,7 +149,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 |---|---|---|
 | Anmeldung (Bürgerportal + Spiel) | `#/login` | LoginScreen |
 | Start / Terminal | `#/home` | TerminalScreen |
-| Steuereinheit (PC & NAS) | `#/control` | ControlUnitScreen |
+| Steuereinheit (PC) | `#/control` | ControlUnitScreen |
 | Dateien (NAS) | `#/files?p=/ordner` | FileManagerScreen |
 | Datei (Editor/Vorschau) | `#/file?p=/ordner/datei.txt` | FileManagerScreen |
 | Sensoren (PC-Monitor) | `#/sensors` | MotionSensorScreen |
@@ -165,7 +164,7 @@ Fehlen die Secrets, bauen Pull Requests trotzdem (APK mit Debug-Schlüssel), nur
 | Artikel | `#/article?u=…` | NewsScreen |
 | Benachrichtigungen | `#/notifications` | – |
 | Chat (nicht verfügbar) | `#/chat` | ChatScreen |
-| Einstellungen (Konten, Benachrichtigungen, Netzwerk, NAS, PC-Agent, NAS-Agent, Updates) | `#/settings` | Navigations-Drawer |
+| Einstellungen (Konten, Benachrichtigungen, Netzwerk, NAS, PC-Agent, Updates) | `#/settings` | Navigations-Drawer |
 
 Auf dem Handy gibt es unten eine Leiste mit fünf Einträgen (Start, Dateien, Sensoren, Steuerung, Mehr) und links ein ausklappbares Menü. Ab 900 px Breite (Desktop) ist das Menü fest als Seitenleiste eingeblendet.
 
@@ -197,7 +196,7 @@ web/        Gemeinsame Oberfläche (HTML/CSS/JS), wird von beiden Plattformen ge
   vendor/       React 18.3.1 und supabase-js 2.117.3 (offline eingebunden)
 android/    Gradle-Projekt: WebView-Hülle, bindet web/ als Assets ein
 linux/      GTK4-/WebKitGTK-Hülle (Python) + Flatpak-Manifest
-desktop/    Electron-Hülle für Windows und macOS (electron-builder, Updates über electron-updater)
+desktop/    Electron-Hülle für Windows (electron-builder, Updates über electron-updater)
 portal/     Bereiche der ABIS-Konsole (aus dPUbtsXv3y), gebaut mit tools/build-portal.sh
 tools/      nas-server.py (WebDAV-Server fürs NAS), pc-agent.py (PC-Protokoll), build-portal.sh + Anleitungen
 ```
@@ -217,13 +216,12 @@ flatpak-builder --user --force-clean --install-deps-from=flathub --repo=repo bui
 flatpak build-bundle repo nDashboard.flatpak de.nikesieg4.nDashboard
 ```
 
-**Windows/macOS** (benötigt Node.js; auf dem jeweiligen System bauen):
+**Windows** (benötigt Node.js; unter Windows bauen):
 ```sh
 cd desktop
 npm ci
 npm start                                   # zum Ausprobieren
 npx electron-builder --win nsis             # → desktop/dist/nDashboard-Setup.exe
-npx electron-builder --mac dmg --universal  # → desktop/dist/nDashboard.dmg
 ```
 
 **Im Browser ansehen:** `web/index.html` direkt öffnen.
